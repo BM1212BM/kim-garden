@@ -272,7 +272,7 @@ function demoData() {
     if (!res.ok) return showState("เปิดสวนไม่สำเร็จ ลองปิดแล้วเปิดใหม่อีกครั้งนะ");
     render(await res.json(), profile?.displayName ?? "");
   } catch (e) {
-    showState("เปิดสวนไม่สำเร็จ ลองปิดแล้วเปิดใหม่อีกครั้งนะ");
+    showState("เปิดสวนไม่สำเร็จ: " + (e?.message || e));
     console.error(e);
   }
 })();
