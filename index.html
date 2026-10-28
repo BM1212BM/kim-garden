@@ -287,7 +287,7 @@ function drawGoals(data) {
     <div><b>${stepsDone}/${steps.length}</b><span>งานทีละขั้นเสร็จ</span></div>
     <div><b>${rTarget ? `${rDone}/${rTarget}` : "–"}</b><span>กิจวัตร 7 วันล่าสุด</span></div>`;
   const err = data.errands ?? { todo: [], done: 0 };
-  const errHtml = err.todo.length || err.done ? `<p class="section-h">📌 งานจร · ค้าง ${err.todo.length} · เคลียร์แล้ว ${err.done}</p>
+  const errHtml = err.todo.length || err.done ? `<p class="section-h">📌 งานทั่วไป · ค้าง ${err.todo.length} · เคลียร์แล้ว ${err.done}</p>
     <ul class="tasks">${err.todo.map((e) => `<li><span class="mk">○</span><span>${escapeHtml(e.title)}${e.due ? ` <small style="color:${e.due < data.today ? "#b5483f" : "var(--muted)"}">· ${thDate(e.due)}</small>` : ""}</span></li>`).join("")}</ul>` : "";
   document.getElementById("goal-cards").innerHTML =
     (active.length ? active.map((g) => goalCard(g, data.today)).join("") : '<p class="note">ยังไม่มีเป้าที่กำลังทำ พิมพ์ "แผนชีวิต" ในแชทคิมได้เลย</p>') +
