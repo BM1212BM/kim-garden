@@ -265,7 +265,7 @@ function goalCard(g, today) {
     return `<div class="rt"><span>${escapeHtml(t.title)}<br><small>${freq(t)}${mins(t.minutes)} · 7 วันล่าสุด ${Math.min(t.weekDone, n)}/${n}</small></span><span class="dots">${dots}</span></div>`;
   }).join("");
   const list = steps.length ? `<details${steps.length <= 4 ? " open" : ""}><summary>งานทีละขั้น ${steps.length} ชิ้น</summary><ul class="tasks">${steps.map((t) =>
-    `<li class="${t.status === "done" ? "done" : ""}"><span class="mk">${t.status === "done" ? "✓" : "○"}</span><span>${escapeHtml(t.title)}${t === firstTodo ? '<span class="next">ถัดไป</span>' : ""}</span></li>`).join("")}</ul></details>` : "";
+    `<li class="${t.status === "done" ? "done" : ""}"><span class="mk">${t.status === "done" ? "✓" : "○"}</span><span>${escapeHtml(t.title)}${t.due && t.status !== "done" ? ` <small style="color:${t.due < today ? "#b5483f" : "var(--muted)"}">· ภายใน ${thDate(t.due)}</small>` : ""}${t === firstTodo ? '<span class="next">ถัดไป</span>' : ""}</span></li>`).join("")}</ul></details>` : "";
   return `<article class="g">
     <div class="g-top"><span class="role r-${role}">${roleName}</span><span>${dl}</span></div>
     <h3>${escapeHtml(g.title)}</h3>
