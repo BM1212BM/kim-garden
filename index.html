@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>สวนของคิม</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700&display=swap" rel="stylesheet">
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<style>
+  :root {
+    --bg: #f6f4ee; --card: #ffffff; --ink: #2b2a26; --muted: #7a776d; --line: #e6e2d6;
+    --leaf: #3f9b6b; --leaf-2: #79c39a; --leaf-3: #b9e2c9; --soil: #c9b796; --sky: #eaf4ef;
+    --trunk: #8a6a4a; --bloom: #e98aa8; --rest: #dfe6ee; --empty: #ece9e1;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Noto Sans Thai", system-ui, sans-serif; line-height: 1.6; }
+  main { max-width: 480px; margin: 0 auto; padding: 16px 16px 40px; }
+  h1 { font-size: 20px; font-weight: 700; margin: 4px 0 2px; }
+  .sub { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+  .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+  .stat b { display: block; font-size: 18px; font-weight: 700; }
+  .stat span { font-size: 12px; color: var(--muted); }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 14px; }
+  .tabs { display: flex; gap: 6px; margin: 0 0 12px; }
+  .tab { flex: 1; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 8px 6px; font: inherit; font-size: 14px; color: var(--muted); }
+  .tab[aria-selected="true"] { background: var(--leaf); border-color: var(--leaf); color: #fff; font-weight: 500; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 13px; color: var(--muted); }
+  .chip[aria-pressed="true"] { border-color: var(--leaf); color: var(--leaf); font-weight: 500; }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 8px; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; }
+  .note { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+  .goal-list { list-style: none; padding: 0; margin: 10px 0 0; }
+  .goal-list li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .goal-list li span:last-child { color: var(--muted); white-space: nowrap; }
+  .state { text-align: center; padding: 48px 16px; color: var(--muted); }
+  svg { display: block; width: 100%; height: auto; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<main>
+  <div id="state" class="state">กำลังเปิดสวน…</div>
+  <div id="app" hidden>
+    <h1 id="title">สวนของเธอ</h1>
+    <p class="sub" id="today"></p>
+    <div class="stats">
+      <div class="stat"><b id="s-jar">0</b><span>ชม. เดือนนี้</span></div>
+      <div class="stat"><b id="s-month">0/0</b><span>วันที่รักษาสัญญา</span></div>
+      <div class="stat"><b id="s-total">0</b><span>วันทั้งหมด</span></div>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="garden" aria-selected="true">สวน</button>
+      <button class="tab" role="tab" data-tab="branch" aria-selected="false">กิ่งก้าน</button>
+      <button class="tab" role="tab" data-tab="streak" aria-selected="false">ความต่อเนื่อง</button>
+    </div>
+    <section class="card" data-panel="garden">
+      <svg id="garden" viewBox="0 0 360 230" role="img" aria-label="สวนเป้าหมาย"></svg>
+      <ul class="goal-list" id="goal-list"></ul>
+      <p class="note">ต้นไม้โตจากจำนวนวันที่เธอรักษาสัญญา ไม่ใช่ปริมาณงาน วันที่ไม่ได้ทำ ต้นไม้แค่ไม่โต ไม่มีวันเหี่ยว</p>
+    </section>
+    <section class="card" data-panel="branch" hidden>
+      <div class="chips" id="goal-chips"></div>
+      <svg id="branch" viewBox="0 0 360 320" role="img" aria-label="ต้นไม้แตกกิ่งของเป้าหมาย"></svg>
+      <div class="legend"><span><i style="background:var(--leaf)"></i>ใบที่ทำเสร็จ</span><span><i style="background:#fff;border:1.5px solid #b8b3a6"></i>ใบที่รออยู่</span></div>
+      <p class="note" id="branch-note"></p>
+    </section>
+    <section class="card" data-panel="streak" hidden>
+      <svg id="streak" viewBox="0 0 360 206" role="img" aria-label="แผนที่ความต่อเนื่อง 12 สัปดาห์"></svg>
+      <div class="legend">
+        <span><i style="background:var(--leaf-3)"></i>ทำได้ &lt;15 นาที</span>
+        <span><i style="background:var(--leaf-2)"></i>15–29</span>
+        <span><i style="background:var(--leaf)"></i>30+</span>
+        <span><i style="background:var(--rest)"></i>วันพัก</span>
+        <span><i style="background:var(--empty)"></i>ยังไม่ได้ทำ</span>
+      </div>
+      <p class="note">12 สัปดาห์ล่าสุด แต่ละคอลัมน์คือหนึ่งสัปดาห์ (บนลงล่าง: อาทิตย์ → เสาร์)</p>
+    </section>
+  </div>
+</main>
+<script>
+// ===== ตั้งค่า: แก้ 2 บรรทัดนี้ =====
+const LIFF_ID = "2012262464-p26qrQrC";
+const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
+const VERSION = "v3";
+// =====================================
+
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs = {}, parent) => {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+};
+const C = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const short = (s, n) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+
+function plant(g, x, ground, stage, opts = {}) {
+  const grp = el("g", { opacity: opts.faded ? 0.4 : 1 }, g);
+  const leaf = C("--leaf"), leaf2 = C("--leaf-2"), trunk = C("--trunk");
+  if (stage === 0) { el("ellipse", { cx: x, cy: ground - 4, rx: 7, ry: 5, fill: C("--trunk") }, grp); return; }
+  const h = [0, 22, 42, 52, 90, 96][stage];
+  el("line", { x1: x, y1: ground, x2: x, y2: ground - h, stroke: stage >= 4 ? trunk : leaf, "stroke-width": stage >= 4 ? 7 : 3, "stroke-linecap": "round" }, grp);
+  if (stage <= 2) {
+    const pairs = stage === 1 ? 1 : 2;
+    for (let i = 0; i < pairs; i++) {
+      const y = ground - h + 6 + i * 16;
+      el("ellipse", { cx: x - 9, cy: y, rx: 9, ry: 4.5, fill: leaf2, transform: `rotate(-25 ${x - 9} ${y})` }, grp);
+      el("ellipse", { cx: x + 9, cy: y - 4, rx: 9, ry: 4.5, fill: leaf, transform: `rotate(25 ${x + 9} ${y - 4})` }, grp);
+    }
+    return;
+  }
+  const top = ground - h, r = stage === 3 ? 24 : 34;
+  [[0, 0, r], [-r * 0.6, 8, r * 0.7], [r * 0.6, 8, r * 0.7]].forEach(([dx, dy, rr], i) =>
+    el("circle", { cx: x + dx, cy: top + dy, r: rr, fill: i ? leaf2 : leaf }, grp));
+  if (stage === 5) {
+    [[-14, -10], [10, -18], [18, 6], [-20, 10], [0, 4], [6, -30], [-6, 18]].forEach(([dx, dy]) =>
+      el("circle", { cx: x + dx, cy: top + dy, r: 4, fill: C("--bloom") }, grp));
+  }
+}
+
+function drawGarden(goals) {
+  const svg = document.getElementById("garden");
+  svg.innerHTML = "";
+  el("rect", { x: 0, y: 0, width: 360, height: 230, rx: 12, fill: C("--sky") }, svg);
+  el("rect", { x: 0, y: 186, width: 360, height: 44, fill: C("--soil"), opacity: 0.55 }, svg);
+  const shown = goals.slice(0, 5);
+  if (!shown.length) {
+    const t = el("text", { x: 180, y: 110, "text-anchor": "middle", "font-size": 14, fill: C("--muted") }, svg);
+    t.textContent = "ยังไม่มีต้นไม้ ตั้งเป้าแรกกับคิมได้เลย";
+    return;
+  }
+  shown.forEach((g, i) => {
+    const x = (360 / (shown.length + 1)) * (i + 1);
+    plant(svg, x, 188, g.stage, { faded: g.status === "paused" });
+    const t = el("text", { x, y: 210, "text-anchor": "middle", "font-size": 11, fill: C("--ink") }, svg);
+    t.textContent = short(g.title, shown.length > 3 ? 9 : 14);
+  });
+  document.getElementById("goal-list").innerHTML = goals.map((g) => {
+    const tag = g.status === "done" ? "สำเร็จแล้ว 🌸" : g.status === "paused" ? "เก็บไว้ก่อน" : ({ main: "เป้าหลัก", secondary: "เป้ารอง", keep: "ดูแลชีวิต", project: "โปรเจกต์" })[g.priority] ?? "เป้ารอง";
+    return `<li><span>${escapeHtml(g.title)}</span><span>${tag} · ${g.kept} วัน</span></li>`;
+  }).join("");
+}
+
+function drawBranch(goal) {
+  const svg = document.getElementById("branch");
+  svg.innerHTML = "";
+  const routines = goal.tasks.filter((x) => x.status === "routine");
+  const tasks = goal.tasks.filter((x) => x.status !== "routine");
+  const perBranch = 5, branches = Math.max(1, Math.ceil(tasks.length / perBranch));
+  const shownBranches = Math.min(branches, 8);
+  const top = 30, bottom = 300, step = (bottom - top - 30) / shownBranches;
+  el("line", { x1: 180, y1: bottom, x2: 180, y2: top, stroke: C("--trunk"), "stroke-width": 9, "stroke-linecap": "round" }, svg);
+  for (let b = 0; b < shownBranches; b++) {
+    const y = bottom - 30 - b * step, dir = b % 2 ? -1 : 1, ex = 180 + dir * 120;
+    el("path", { d: `M180 ${y} Q ${180 + dir * 50} ${y - 10} ${ex} ${y - 26}`, stroke: C("--trunk"), "stroke-width": 4, fill: "none", "stroke-linecap": "round" }, svg);
+    tasks.slice(b * perBranch, b * perBranch + perBranch).forEach((t, i) => {
+      const lx = 180 + dir * (34 + i * 21), ly = y - 6 - i * 4.4 - (i % 2 ? 10 : -6);
+      el("ellipse", {
+        cx: lx, cy: ly, rx: 9, ry: 5.5, transform: `rotate(${dir * -30} ${lx} ${ly})`,
+        fill: t.status === "done" ? C("--leaf") : "#fff", stroke: t.status === "done" ? C("--leaf") : "#b8b3a6", "stroke-width": 1.5,
+      }, svg);
+    });
+  }
+  const t = el("text", { x: 180, y: 18, "text-anchor": "middle", "font-size": 13, "font-weight": 500, fill: C("--ink") }, svg);
+  t.textContent = short(goal.title, 30);
+  const done = tasks.filter((x) => x.status === "done").length;
+  const rLine = routines.length ? `กิจวัตร: ${routines.map((x) => x.title).join(" · ")}` : "";
+  document.getElementById("branch-note").textContent = [tasks.length
+    ? `ทำเสร็จ ${done} จาก ${tasks.length} งาน${branches > shownBranches ? ` (แสดง ${shownBranches * perBranch} งานแรก)` : ""}`
+    : routines.length ? "" : "ยังไม่มีงานในเป้านี้", rLine].filter(Boolean).join(" · ");
+}
+
+function drawStreak(days, today) {
+  const svg = document.getElementById("streak");
+  svg.innerHTML = "";
+  const map = new Map();
+  for (const d of days) {
+    const prev = map.get(d.day);
+    if (!prev || (d.minutes ?? 0) > (prev.minutes ?? 0) || (d.result && !prev.result)) map.set(d.day, d);
+  }
+  const t = new Date(today + "T00:00:00Z");
+  const start = new Date(t); start.setUTCDate(t.getUTCDate() - t.getUTCDay() - 7 * 11);
+  const cell = 20, gap = 6, left = 30, topY = 18;
+  ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].forEach((n, r) => {
+    if (r % 2) return;
+    const tx = el("text", { x: 2, y: topY + r * (cell + gap) + 14, "font-size": 10, fill: C("--muted") }, svg);
+    tx.textContent = n;
+  });
+  for (let w = 0; w < 12; w++) {
+    for (let r = 0; r < 7; r++) {
+      const d = new Date(start); d.setUTCDate(start.getUTCDate() + w * 7 + r);
+      const key = d.toISOString().slice(0, 10);
+      if (key > today) continue;
+      const info = map.get(key);
+      let fill = C("--empty");
+      if (info?.rest) fill = C("--rest");
+      else if (["full", "small", "partial"].includes(info?.result)) fill = info.minutes >= 30 ? C("--leaf") : info.minutes >= 15 ? C("--leaf-2") : C("--leaf-3");
+      const rect = el("rect", { x: left + w * (cell + gap), y: topY + r * (cell + gap), width: cell, height: cell, rx: 4, fill }, svg);
+      if (key === today) { rect.setAttribute("stroke", C("--ink")); rect.setAttribute("stroke-width", 1.5); }
+      const tip = el("title", {}, rect); tip.textContent = `${key}${info?.minutes ? ` · ${info.minutes} นาที` : ""}`;
+      if (r === 0 && d.getUTCDate() <= 7) {
+        const m = el("text", { x: left + w * (cell + gap), y: 10, "font-size": 10, fill: C("--muted") }, svg);
+        m.textContent = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."][d.getUTCMonth()];
+      }
+    }
+  }
+}
+
+function escapeHtml(s) { return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]); }
+
+function render(data, name) {
+  document.getElementById("state").hidden = true;
+  document.getElementById("app").hidden = false;
+  if (name) document.getElementById("title").textContent = `สวนของ${name}`;
+  const [y, m, d] = data.today.split("-");
+  document.getElementById("today").textContent = `ข้อมูล ณ ${Number(d)}/${Number(m)}/${Number(y) + 543}`;
+  document.getElementById("s-jar").textContent = (data.stats.jarMonth / 60).toFixed(1);
+  document.getElementById("s-month").textContent = `${data.stats.keptMonth}/${data.stats.promisedMonth}`;
+  document.getElementById("s-total").textContent = data.stats.keptTotal;
+  drawGarden(data.goals);
+  drawStreak(data.days, data.today);
+  const chips = document.getElementById("goal-chips");
+  const withTasks = data.goals.filter((g) => g.status !== "paused" || g.tasks.length);
+  chips.innerHTML = withTasks.map((g, i) => `<button class="chip" aria-pressed="${i === 0}" data-i="${i}">${escapeHtml(short(g.title, 16))}</button>`).join("");
+  chips.onclick = (e) => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    chips.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", c === b));
+    drawBranch(withTasks[Number(b.dataset.i)]);
+  };
+  if (withTasks[0]) drawBranch(withTasks[0]);
+}
+
+document.querySelector(".tabs").addEventListener("click", (e) => {
+  const tab = e.target.closest(".tab"); if (!tab) return;
+  document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", t === tab));
+  document.querySelectorAll("[data-panel]").forEach((p) => (p.hidden = p.dataset.panel !== tab.dataset.tab));
+});
+
+function showState(msg) { const s = document.getElementById("state"); s.hidden = false; s.textContent = `${msg} · ${VERSION}`; document.getElementById("app").hidden = true; }
+
+function demoData() {
+  const today = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+  const days = [];
+  for (let i = 60; i >= 0; i--) {
+    const d = new Date(Date.parse(today) - i * 864e5).toISOString().slice(0, 10);
+    const r = (i * 7) % 10;
+    days.push(r < 6 ? { day: d, result: "full", rest: false, minutes: [10, 20, 30, 15, 25, 40][r] } : r < 7 ? { day: d, result: null, rest: true, minutes: 0 } : { day: d, result: "none", rest: false, minutes: 0 });
+  }
+  const t = (n, done) => Array.from({ length: n }, (_, i) => ({ title: `งาน ${i + 1}`, status: i < done ? "done" : "todo" }));
+  return {
+    today, days,
+    stats: { jarMonth: 540, jarTotal: 1380, keptMonth: 18, promisedMonth: 22, keptTotal: 40 },
+    goals: [
+      { title: "สอบ IELTS ให้ได้ 7", priority: "main", status: "active", kept: 40, stage: 3, stageName: "พุ่มไม้", tasks: t(23, 17) },
+      { title: "วิ่งสัปดาห์ละ 2 ครั้ง", priority: "secondary", status: "active", kept: 12, stage: 2, stageName: "ต้นกล้า", tasks: t(9, 6) },
+      { title: "นั่งสมาธิวันละ 10 นาที", priority: "main", status: "done", kept: 70, stage: 5, stageName: "สำเร็จแล้ว", tasks: t(14, 14) },
+      { title: "หารายได้เสริม", priority: "main", status: "paused", kept: 3, stage: 1, stageName: "แตกหน่อ", tasks: t(3, 1) },
+    ],
+  };
+}
+
+(async () => {
+  if (new URLSearchParams(location.search).has("demo")) return render(demoData(), "เธอ (ตัวอย่าง)");
+  try {
+    if (!LIFF_ID || LIFF_ID.includes("ใส่")) return showState("ยังไม่ได้ใส่ LIFF ID ในไฟล์ index.html");
+    await liff.init({ liffId: LIFF_ID });
+    if (!liff.isLoggedIn()) return liff.login();
+    if (!liff.getIDToken()) return showState("ไม่ได้รับ ID token: เปิด scope openid ในแท็บ LIFF แล้วลองใหม่");
+    const [profile, res] = await Promise.all([
+      liff.getProfile().catch(() => null),
+      fetch(FUNCTION_URL, { headers: { "x-line-id-token": liff.getIDToken() } }),
+    ]);
+    if (res.status === 404) return showState("ยังไม่ได้เริ่มกับคิมเลย กลับไปที่แชทแล้วตั้งเป้าแรกก่อนนะ 🌱");
+    if (!res.ok) return showState(`เปิดสวนไม่สำเร็จ (ข้อมูลตอบกลับ ${res.status}: ${(await res.text()).slice(0, 120)})`);
+    render(await res.json(), profile?.displayName ?? "");
+  } catch (e) {
+    const msg = e?.message || String(e);
+    const hint = /liff|LIFF/.test(msg) ? "ตรวจ LIFF ID" : /fetch|network|Load failed/i.test(msg) ? "เรียก Supabase ไม่ได้: ตรวจว่าปิด JWT ของ garden-data แล้ว" : "";
+    showState(`เปิดสวนไม่สำเร็จ: ${msg}${hint ? ` (${hint})` : ""}`);
+    console.error(e);
+  }
+})();
+</script>
+</body>
+</html>
