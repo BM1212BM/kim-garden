@@ -92,6 +92,7 @@
     </section>
     <section class="card" data-panel="goals" hidden>
       <div class="sum" id="goal-sum"></div>
+      <p class="note" style="margin:6px 0 0">"ภายใน" = กำหนดส่งจริง · "ราว" = วันที่คิมน่าจะจัดให้ (เลื่อนได้ตามเวลาว่าง)</p>
       <div id="goal-cards"></div>
     </section>
     <section class="card" data-panel="branch" hidden>
@@ -117,7 +118,7 @@
 // ===== ตั้งค่า: แก้ 2 บรรทัดนี้ =====
 const LIFF_ID = "2012262464-p26qrQrC";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v4";
+const VERSION = "v5";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -265,11 +266,12 @@ function goalCard(g, today) {
     return `<div class="rt"><span>${escapeHtml(t.title)}<br><small>${freq(t)}${mins(t.minutes)} · 7 วันล่าสุด ${Math.min(t.weekDone, n)}/${n}</small></span><span class="dots">${dots}</span></div>`;
   }).join("");
   const list = steps.length ? `<details${steps.length <= 4 ? " open" : ""}><summary>งานทีละขั้น ${steps.length} ชิ้น</summary><ul class="tasks">${steps.map((t) =>
-    `<li class="${t.status === "done" ? "done" : ""}"><span class="mk">${t.status === "done" ? "✓" : "○"}</span><span>${escapeHtml(t.title)}${t.due && t.status !== "done" ? ` <small style="color:${t.due < today ? "#b5483f" : "var(--muted)"}">· ภายใน ${thDate(t.due)}</small>` : ""}${t === firstTodo ? '<span class="next">ถัดไป</span>' : ""}</span></li>`).join("")}</ul></details>` : "";
+    `<li class="${t.status === "done" ? "done" : ""}"><span class="mk">${t.status === "done" ? "✓" : "○"}</span><span>${escapeHtml(t.title)}${t.status === "done" ? "" : t.due ? ` <small style="color:${t.due < today ? "#b5483f" : "var(--muted)"}">· ภายใน ${thDate(t.due)}</small>` : t.est ? ` <small style="color:var(--muted)">· ราว ${DAY[new Date(t.est + "T00:00:00Z").getUTCDay()]} ${thDate(t.est)}</small>` : ""}${t === firstTodo ? '<span class="next">ถัดไป</span>' : ""}</span></li>`).join("")}</ul></details>` : "";
   return `<article class="g">
     <div class="g-top"><span class="role r-${role}">${roleName}</span><span>${dl}</span></div>
     <h3>${escapeHtml(g.title)}</h3>
     ${steps.length ? `<div class="meter" role="img" aria-label="เสร็จ ${pct}%"><i style="width:${pct}%"></i></div><p class="meta">เสร็จ ${done} จาก ${steps.length} ชิ้น · เหลือ ${steps.length - done} ชิ้น · รักษาสัญญา ${g.kept} วัน</p>` : `<p class="meta">รักษาสัญญา ${g.kept} วัน</p>`}
+    ${g.status === "paused" && steps.some((t) => t.status !== "done") ? '<p class="meta">ยังไม่ได้จัดลงวัน เพราะเป้านี้เก็บไว้ก่อน · อยากเริ่ม พิมพ์ในแชทคิม เช่น "ย้ายเรื่องนี้เป็นโปรเจกต์"</p>' : ""}
     ${rows}${list}
   </article>`;
 }
