@@ -99,11 +99,10 @@
     <div class="tabs" role="tablist">
       <button class="tab" role="tab" data-tab="garden" aria-selected="true">สวน</button>
       <button class="tab" role="tab" data-tab="goals" aria-selected="false">เป้าหมาย</button>
-      <button class="tab" role="tab" data-tab="branch" aria-selected="false">กิ่งก้าน</button>
       <button class="tab" role="tab" data-tab="streak" aria-selected="false">ต่อเนื่อง</button>
     </div>
     <section class="card" data-panel="garden">
-      <svg id="garden" viewBox="0 0 360 230" role="img" aria-label="สวนเป้าหมาย"></svg>
+      <svg id="garden" viewBox="0 0 360 250" role="img" aria-label="สวนเป้าหมาย"></svg>
       <ul class="goal-list" id="goal-list"></ul>
       <p class="note">ต้นไม้โตจากจำนวนวันที่เธอรักษาสัญญา ไม่ใช่ปริมาณงาน วันที่ไม่ได้ทำ ต้นไม้แค่ไม่โต ไม่มีวันเหี่ยว</p>
     </section>
@@ -111,12 +110,6 @@
       <div class="sum" id="goal-sum"></div>
       <div id="goal-cards"></div>
       <p class="note"><span class="when due">ส่ง 19 พ.ย.</span> กำหนดส่งจริง · <span class="when est">≈ พ 4 พ.ย.</span> วันที่คิมจัดให้ทำ (ตามเวลาว่าง)</p>
-    </section>
-    <section class="card" data-panel="branch" hidden>
-      <div class="chips" id="goal-chips"></div>
-      <svg id="branch" viewBox="0 0 360 320" role="img" aria-label="ต้นไม้แตกกิ่งของเป้าหมาย"></svg>
-      <div class="legend"><span><i style="background:var(--leaf)"></i>ใบที่ทำเสร็จ</span><span><i style="background:#fff;border:1.5px solid #b8b3a6"></i>ใบที่รออยู่</span></div>
-      <p class="note" id="branch-note"></p>
     </section>
     <section class="card" data-panel="streak" hidden>
       <svg id="streak" viewBox="0 0 360 206" role="img" aria-label="แผนที่ความต่อเนื่อง 12 สัปดาห์"></svg>
@@ -135,7 +128,7 @@
 // ===== ตั้งค่า: แก้ 2 บรรทัดนี้ =====
 const LIFF_ID = "2012262464-p26qrQrC";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v7";
+const VERSION = "v8";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -172,23 +165,45 @@ function plant(g, x, ground, stage, opts = {}) {
   }
 }
 
+// ตัดชื่อเป็น 2 บรรทัดตามคำ (ภาษาไทยไม่มีเว้นวรรค ใช้ Intl.Segmenter ถ้ามี)
+function twoLines(text, max) {
+  const words = (() => { try { return [...new Intl.Segmenter("th", { granularity: "word" }).segment(text)].map((x) => x.segment); } catch { return text.split(/(\s+)/); } })();
+  const lines = ["", ""]; let i = 0;
+  for (const w of words) {
+    if ((lines[i] + w).length > max) { if (i === 1 || !lines[i]) { lines[i] = short(lines[i] + w, max); if (i === 1) break; i++; continue; } i++; }
+    if (i > 1) break;
+    lines[i] += i && !lines[i] ? w.trimStart() : w;
+  }
+  if (words.join("").length > (lines[0] + lines[1]).length && !lines[1].endsWith("…")) lines[1] = short(lines[1] + "…", max);
+  return lines.filter((l) => l.trim());
+}
+
 function drawGarden(goals) {
   const svg = document.getElementById("garden");
   svg.innerHTML = "";
-  el("rect", { x: 0, y: 0, width: 360, height: 230, rx: 12, fill: C("--sky") }, svg);
-  el("rect", { x: 0, y: 186, width: 360, height: 44, fill: C("--soil"), opacity: 0.55 }, svg);
-  const shown = goals.slice(0, 5);
+  const shown = goals.filter((g) => g.status !== "done").concat(goals.filter((g) => g.status === "done"));
+  const perRow = shown.length <= 4 ? Math.max(shown.length, 1) : shown.length <= 8 ? Math.ceil(shown.length / 2) : 4;
+  const rows = Math.max(1, Math.ceil(shown.length / perRow));
+  const rowH = 190, H = rows * rowH + 10;
+  svg.setAttribute("viewBox", `0 0 360 ${H}`);
+  el("rect", { x: 0, y: 0, width: 360, height: H, rx: 12, fill: C("--sky") }, svg);
   if (!shown.length) {
-    const t = el("text", { x: 180, y: 110, "text-anchor": "middle", "font-size": 14, fill: C("--muted") }, svg);
+    const t = el("text", { x: 180, y: 100, "text-anchor": "middle", "font-size": 14, fill: C("--muted") }, svg);
     t.textContent = "ยังไม่มีต้นไม้ ตั้งเป้าแรกกับคิมได้เลย";
-    return;
   }
-  shown.forEach((g, i) => {
-    const x = (360 / (shown.length + 1)) * (i + 1);
-    plant(svg, x, 188, g.stage, { faded: g.status === "paused" });
-    const t = el("text", { x, y: 210, "text-anchor": "middle", "font-size": 11, fill: C("--ink") }, svg);
-    t.textContent = short(g.title, shown.length > 3 ? 9 : 14);
-  });
+  for (let r = 0; r < rows; r++) {
+    const ground = r * rowH + 135;
+    el("rect", { x: 0, y: ground - 2, width: 360, height: 56, fill: C("--soil"), opacity: 0.55 }, svg);
+    const list = shown.slice(r * perRow, r * perRow + perRow);
+    list.forEach((g, i) => {
+      const x = (360 / (list.length + 1)) * (i + 1);
+      plant(svg, x, ground, g.stage, { faded: g.status === "paused" });
+      twoLines(g.title, list.length >= 4 ? 9 : 12).forEach((line, k) => {
+        const t = el("text", { x, y: ground + 18 + k * 15, "text-anchor": "middle", "font-size": 12, fill: g.status === "paused" ? C("--muted") : C("--ink") }, svg);
+        t.textContent = line;
+      });
+    });
+  }
   document.getElementById("goal-list").innerHTML = goals.map((g) => {
     const tag = g.status === "done" ? "สำเร็จแล้ว 🌸" : g.status === "paused" ? "เก็บไว้ก่อน" : ({ main: "เป้าหลัก", secondary: "เป้ารอง", keep: "ดูแลชีวิต", project: "โปรเจกต์" })[g.priority] ?? "เป้ารอง";
     return `<li><span>${escapeHtml(g.title)}</span><span>${tag} · ${g.kept} วัน</span></li>`;
@@ -360,15 +375,6 @@ function render(data, name) {
   drawGarden(data.goals);
   drawGoals(data);
   drawStreak(data.days, data.today);
-  const chips = document.getElementById("goal-chips");
-  const withTasks = data.goals.filter((g) => g.status !== "paused" || g.tasks.length);
-  chips.innerHTML = withTasks.map((g, i) => `<button class="chip" aria-pressed="${i === 0}" data-i="${i}">${escapeHtml(short(g.title, 16))}</button>`).join("");
-  chips.onclick = (e) => {
-    const b = e.target.closest(".chip"); if (!b) return;
-    chips.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", c === b));
-    drawBranch(withTasks[Number(b.dataset.i)]);
-  };
-  if (withTasks[0]) drawBranch(withTasks[0]);
 }
 
 document.querySelector(".tabs").addEventListener("click", (e) => {
