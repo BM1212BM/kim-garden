@@ -128,7 +128,7 @@
 // ===== ตั้งค่า: แก้ 2 บรรทัดนี้ =====
 const LIFF_ID = "2012262464-p26qrQrC";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v8";
+const VERSION = "v9";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -297,8 +297,9 @@ function goalCard(g, today, open) {
   const todo = steps.filter((t) => t.status !== "done");
   const rDone = routines.reduce((s, t) => s + Math.min(t.weekDone, Math.min(t.weekTarget, 7)), 0);
   const rTarget = routines.reduce((s, t) => s + Math.min(t.weekTarget, 7), 0);
-  // ความคืบหน้า: เป้าที่มีกิจวัตร = ทำครบกี่ครั้งใน 7 วันล่าสุด · เป้าที่มีแต่งานทีละขั้น = งานที่เสร็จ
-  const pct = g.status === "paused" ? null : rTarget ? Math.round((rDone / rTarget) * 100) : steps.length ? Math.round((done / steps.length) * 100) : null;
+  // ความคืบหน้า (สะสม ไม่เริ่มใหม่): เป้าที่มีงานทีละขั้น = งานที่เสร็จทั้งหมด / งานทั้งหมด · เป้าที่มีแต่กิจวัตร = ทำครบกี่ครั้งใน 7 วันล่าสุด
+  const pct = g.status === "paused" ? null : steps.length ? Math.round((done / steps.length) * 100) : rTarget ? Math.round((rDone / rTarget) * 100) : null;
+  const pctLabel = steps.length ? `งานเสร็จ ${done}/${steps.length}` : "กิจวัตร 7 วันล่าสุด";
   const left = g.deadline ? Math.round((Date.parse(g.deadline) - Date.parse(today)) / 864e5) : null;
   const meta = [
     g.status !== "active" ? `<span>${roleName(g)}</span>` : "",
@@ -323,7 +324,7 @@ function goalCard(g, today, open) {
   return `<details class="gc r-${rk}"${open ? " open" : ""}>
     <summary>
       <div class="gc-row"><span class="gc-title">${escapeHtml(g.title)}</span>${pct !== null && g.status !== "done" ? `<span class="gc-pct">${pct}%</span>` : g.status === "done" ? '<span class="gc-pct">🌸</span>' : ""}<span class="chev">▶</span></div>
-      ${pct !== null && g.status === "active" ? `<div class="meter" role="img" aria-label="${pct}%"><i style="width:${pct}%"></i></div>` : '<div style="height:6px"></div>'}
+      ${pct !== null && g.status === "active" ? `<div class="meter" role="img" aria-label="${pctLabel} ${pct}%" title="${pctLabel}"><i style="width:${pct}%"></i></div>` : '<div style="height:6px"></div>'}
       <div class="gc-meta">${meta}</div>
       ${open ? "" : nextHtml}
     </summary>
