@@ -110,7 +110,7 @@
     <section class="card" data-panel="goals" hidden>
       <div class="sum" id="goal-sum"></div>
       <div id="goal-cards"></div>
-      <p class="note"><span class="when due">ส่ง 19 พ.ย.</span> กำหนดส่งจริง · <span class="when est">≈ พ 4 พ.ย.</span> วันที่คิมน่าจะจัดให้ (เลื่อนได้)</p>
+      <p class="note"><span class="when due">ส่ง 19 พ.ย.</span> กำหนดส่งจริง · <span class="when est">≈ พ 4 พ.ย.</span> วันที่คิมจัดให้ทำ (ตามเวลาว่าง)</p>
     </section>
     <section class="card" data-panel="branch" hidden>
       <div class="chips" id="goal-chips"></div>
@@ -135,7 +135,7 @@
 // ===== ตั้งค่า: แก้ 2 บรรทัดนี้ =====
 const LIFF_ID = "2012262464-p26qrQrC";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v6";
+const VERSION = "v7";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -270,8 +270,8 @@ const mins = (m) => (m > 5 ? (m >= 60 ? ` · ${+(m / 60).toFixed(1)} ชม.` : 
 const roleKey = (g) => g.status === "done" ? "done" : g.status === "paused" ? "parked" : (ROLE[g.priority] ? g.priority : "secondary");
 const roleName = (g) => g.status === "done" ? "สำเร็จแล้ว" : g.status === "paused" ? "เก็บไว้ก่อน" : ROLE[g.priority] ?? "เป้ารอง";
 const whenTag = (t, today) => t.status === "done" ? ""
-  : t.due ? ` <span class="when ${t.due < today ? "late" : "due"}">${t.due < today ? "เลยกำหนด" : "ส่ง"} ${thDate(t.due)}</span>`
-  : t.est ? ` <span class="when est">≈ ${DAY[new Date(t.est + "T00:00:00Z").getUTCDay()]} ${thDate(t.est)}</span>` : "";
+  : (t.est ? ` <span class="when est">≈ ${t.est === today ? "วันนี้" : `${DAY[new Date(t.est + "T00:00:00Z").getUTCDay()]} ${thDate(t.est)}`}</span>` : "")
+  + (t.due ? ` <span class="when ${t.due < today ? "late" : "due"}">${t.due < today ? "เลยกำหนด" : "ส่ง"} ${thDate(t.due)}</span>` : "");
 const taskLi = (t, today) => `<li class="${t.status === "done" ? "done" : ""}"><span class="mk"></span><span class="t">${escapeHtml(t.title.replace(/^🧳 /, "🧳 "))}${whenTag(t, today)}</span></li>`;
 
 function goalCard(g, today, open) {
@@ -353,7 +353,7 @@ function render(data, name) {
   document.getElementById("app").hidden = false;
   if (name) document.getElementById("title").textContent = `สวนของ${name}`;
   const [y, m, d] = data.today.split("-");
-  document.getElementById("today").textContent = `ข้อมูล ณ ${Number(d)}/${Number(m)}/${Number(y) + 543}`;
+  document.getElementById("today").textContent = `ข้อมูล ณ ${Number(d)}/${Number(m)}/${Number(y) + 543} · ${VERSION}`;
   document.getElementById("s-jar").textContent = (data.stats.jarMonth / 60).toFixed(1);
   document.getElementById("s-month").textContent = `${data.stats.keptMonth}/${data.stats.promisedMonth}`;
   document.getElementById("s-total").textContent = data.stats.keptTotal;
