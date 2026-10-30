@@ -38,33 +38,50 @@
   .state { text-align: center; padding: 48px 16px; color: var(--muted); }
   svg { display: block; width: 100%; height: auto; }
   [hidden] { display: none !important; }
-  /* แท็บเป้าหมาย */
-  .sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 4px; }
-  .sum div { background: var(--bg); border-radius: 10px; padding: 8px; text-align: center; }
-  .sum b { display: block; font-size: 18px; }
+  /* แท็บเป้าหมาย (v6: การ์ดพับได้ อ่านทีละเป้า) */
+  .sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+  .sum div { background: var(--bg); border-radius: 12px; padding: 10px 6px; text-align: center; }
+  .sum b { display: block; font-size: 20px; line-height: 1.2; }
   .sum span { font-size: 12px; color: var(--muted); }
-  .g { border-top: 1px solid var(--line); padding: 14px 0 4px; }
-  .g:first-of-type { border-top: 0; }
-  .g-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
-  .role { border-radius: 999px; padding: 1px 9px; font-size: 12px; font-weight: 500; }
-  .r-main { background: #dff1e6; color: #1f6b45; } .r-secondary { background: #e3eef8; color: #2a5d8c; }
-  .r-keep { background: #f9e6ee; color: #9a3d61; } .r-project { background: #f6ecd8; color: #85602a; } .r-parked { background: var(--empty); color: var(--muted); } .r-done { background: #fbe4ec; color: #a8436a; }
-  .g h3 { font-size: 16px; margin: 6px 0 8px; line-height: 1.4; }
-  .meter { height: 8px; background: var(--empty); border-radius: 99px; overflow: hidden; }
-  .meter i { display: block; height: 100%; background: var(--leaf); border-radius: 99px; }
-  .meta { font-size: 13px; color: var(--muted); margin: 4px 0 8px; }
-  .rt { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; padding: 4px 0; }
-  .rt small { color: var(--muted); font-size: 12px; }
-  .dots { display: flex; gap: 3px; flex: none; }
-  .dots i { width: 9px; height: 9px; border-radius: 50%; background: var(--empty); }
-  .dots i.on { background: var(--leaf); }
-  .g details { margin-top: 4px; }
-  .g summary { font-size: 13px; color: var(--leaf); cursor: pointer; padding: 4px 0; }
-  .tasks { list-style: none; padding: 0; margin: 4px 0 6px; font-size: 14px; }
-  .tasks li { display: flex; gap: 8px; padding: 3px 0; }
-  .tasks li.done { color: var(--muted); text-decoration: line-through; }
-  .tasks li .mk { flex: none; width: 18px; text-align: center; }
-  .next { font-size: 11px; background: #dff1e6; color: #1f6b45; border-radius: 6px; padding: 0 6px; margin-left: 4px; text-decoration: none; }
+  .grp-h { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--muted); margin: 16px 2px 8px; }
+  .grp-h::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .gc { border: 1px solid var(--line); border-left: 5px solid var(--rc, var(--line)); border-radius: 14px; margin-bottom: 10px; background: var(--card); overflow: hidden; }
+  .gc > summary { list-style: none; cursor: pointer; padding: 12px 14px; }
+  .gc > summary::-webkit-details-marker { display: none; }
+  .gc-row { display: flex; align-items: flex-start; gap: 10px; }
+  .gc-title { flex: 1; min-width: 0; font-size: 16px; font-weight: 700; line-height: 1.4; }
+  .gc-pct { flex: none; font-size: 15px; font-weight: 700; color: var(--rc); }
+  .chev { flex: none; color: var(--muted); transition: transform .2s; font-size: 14px; margin-top: 2px; }
+  .gc[open] .chev { transform: rotate(90deg); }
+  .meter { height: 6px; background: var(--empty); border-radius: 99px; overflow: hidden; margin: 8px 0 6px; }
+  .meter i { display: block; height: 100%; background: var(--rc, var(--leaf)); border-radius: 99px; }
+  .gc-meta { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--muted); }
+  .gc-next { margin-top: 8px; font-size: 14px; background: var(--bg); border-radius: 10px; padding: 7px 10px; }
+  .gc-next b { color: var(--rc); font-weight: 700; margin-right: 4px; }
+  .gc-body { padding: 0 14px 12px; border-top: 1px dashed var(--line); }
+  .sub-h { font-size: 12px; font-weight: 700; color: var(--muted); margin: 12px 0 4px; letter-spacing: .02em; }
+  .rt { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 2px 10px; padding: 7px 0; border-bottom: 1px solid var(--line); }
+  .rt:last-child { border-bottom: 0; }
+  .rt-name { font-size: 14px; line-height: 1.4; }
+  .rt-when { grid-column: 1; font-size: 12px; color: var(--muted); }
+  .rt-count { grid-row: 1 / span 2; grid-column: 2; text-align: right; }
+  .rt-count b { font-size: 15px; } .rt-count small { display: block; font-size: 11px; color: var(--muted); }
+  .rt-count.ok b { color: var(--leaf); }
+  .tasks { list-style: none; padding: 0; margin: 0; font-size: 14px; }
+  .tasks li { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); line-height: 1.45; }
+  .tasks li:last-child { border-bottom: 0; }
+  .tasks .mk { flex: none; width: 18px; height: 18px; margin-top: 2px; border: 1.5px solid #c4bfb2; border-radius: 50%; }
+  .tasks li.done { color: var(--muted); } .tasks li.done .t { text-decoration: line-through; }
+  .tasks li.done .mk { background: var(--leaf); border-color: var(--leaf); }
+  .tasks .t { flex: 1; min-width: 0; }
+  .when { display: inline-block; font-size: 12px; border-radius: 6px; padding: 0 6px; margin-left: 2px; white-space: nowrap; }
+  .when.due { background: #fdecd9; color: #9a5a17; } .when.late { background: #fbe1df; color: #b5483f; } .when.est { color: var(--muted); }
+  .more { font-size: 13px; color: var(--leaf); cursor: pointer; padding: 6px 0 0; }
+  .more summary { list-style: none; } .more summary::-webkit-details-marker { display: none; }
+  .hint { font-size: 13px; color: var(--muted); background: var(--bg); border-radius: 10px; padding: 8px 10px; margin-top: 10px; }
+  .r-main { --rc: #2f8a5c; } .r-secondary { --rc: #3a73a8; } .r-keep { --rc: #b4537a; } .r-project { --rc: #a87a2e; } .r-parked, .r-done { --rc: #a5a194; }
+  .gc.r-parked .gc-title, .gc.r-done .gc-title { color: var(--muted); font-weight: 500; }
+  .errs .tasks li { padding: 6px 0; }
   .section-h { font-size: 13px; font-weight: 500; color: var(--muted); margin: 18px 0 2px; }
 </style>
 </head>
@@ -92,8 +109,8 @@
     </section>
     <section class="card" data-panel="goals" hidden>
       <div class="sum" id="goal-sum"></div>
-      <p class="note" style="margin:6px 0 0">"ภายใน" = กำหนดส่งจริง · "ราว" = วันที่คิมน่าจะจัดให้ (เลื่อนได้ตามเวลาว่าง)</p>
       <div id="goal-cards"></div>
+      <p class="note"><span class="when due">ส่ง 19 พ.ย.</span> กำหนดส่งจริง · <span class="when est">≈ พ 4 พ.ย.</span> วันที่คิมน่าจะจัดให้ (เลื่อนได้)</p>
     </section>
     <section class="card" data-panel="branch" hidden>
       <div class="chips" id="goal-chips"></div>
@@ -118,7 +135,7 @@
 // ===== ตั้งค่า: แก้ 2 บรรทัดนี้ =====
 const LIFF_ID = "2012262464-p26qrQrC";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v5";
+const VERSION = "v6";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -250,30 +267,59 @@ const thDate = (d) => `${Number(d.slice(8, 10))} ${MONTH[Number(d.slice(5, 7)) -
 const freq = (t) => t.days?.length ? (t.days.length === 7 ? "ทุกวัน" : t.days.map((d) => DAY[d]).join(" ")) : `สัปดาห์ละ ${t.per_week ?? 1}`;
 const mins = (m) => (m > 5 ? (m >= 60 ? ` · ${+(m / 60).toFixed(1)} ชม.` : ` · ${m} นาที`) : "");
 
-function goalCard(g, today) {
-  const role = g.status === "done" ? "done" : g.status === "paused" ? "parked" : g.priority;
-  const roleName = g.status === "done" ? "สำเร็จแล้ว" : g.status === "paused" ? "เก็บไว้ก่อน" : ROLE[g.priority] ?? "เป้ารอง";
-  const left = g.deadline ? Math.round((Date.parse(g.deadline) - Date.parse(today)) / 864e5) : null;
-  const dl = g.deadline ? `ภายใน ${thDate(g.deadline)} ${Number(g.deadline.slice(0, 4)) + 543}${left >= 0 ? ` · อีก ${left} วัน` : " · เลยกำหนดแล้ว"}` : "";
+const roleKey = (g) => g.status === "done" ? "done" : g.status === "paused" ? "parked" : (ROLE[g.priority] ? g.priority : "secondary");
+const roleName = (g) => g.status === "done" ? "สำเร็จแล้ว" : g.status === "paused" ? "เก็บไว้ก่อน" : ROLE[g.priority] ?? "เป้ารอง";
+const whenTag = (t, today) => t.status === "done" ? ""
+  : t.due ? ` <span class="when ${t.due < today ? "late" : "due"}">${t.due < today ? "เลยกำหนด" : "ส่ง"} ${thDate(t.due)}</span>`
+  : t.est ? ` <span class="when est">≈ ${DAY[new Date(t.est + "T00:00:00Z").getUTCDay()]} ${thDate(t.est)}</span>` : "";
+const taskLi = (t, today) => `<li class="${t.status === "done" ? "done" : ""}"><span class="mk"></span><span class="t">${escapeHtml(t.title.replace(/^🧳 /, "🧳 "))}${whenTag(t, today)}</span></li>`;
+
+function goalCard(g, today, open) {
+  const rk = roleKey(g);
   const steps = g.tasks.filter((t) => t.status !== "routine");
   const routines = g.tasks.filter((t) => t.status === "routine");
   const done = steps.filter((t) => t.status === "done").length;
-  const pct = steps.length ? Math.round((done / steps.length) * 100) : 0;
-  const firstTodo = steps.find((t) => t.status !== "done");
-  const rows = routines.map((t) => {
-    const n = Math.min(t.weekTarget, 7);
-    const dots = Array.from({ length: n }, (_, i) => `<i class="${i < t.weekDone ? "on" : ""}"></i>`).join("");
-    return `<div class="rt"><span>${escapeHtml(t.title)}<br><small>${freq(t)}${mins(t.minutes)} · 7 วันล่าสุด ${Math.min(t.weekDone, n)}/${n}</small></span><span class="dots">${dots}</span></div>`;
+  const todo = steps.filter((t) => t.status !== "done");
+  const rDone = routines.reduce((s, t) => s + Math.min(t.weekDone, Math.min(t.weekTarget, 7)), 0);
+  const rTarget = routines.reduce((s, t) => s + Math.min(t.weekTarget, 7), 0);
+  // ความคืบหน้า: เป้าที่มีกิจวัตร = ทำครบกี่ครั้งใน 7 วันล่าสุด · เป้าที่มีแต่งานทีละขั้น = งานที่เสร็จ
+  const pct = g.status === "paused" ? null : rTarget ? Math.round((rDone / rTarget) * 100) : steps.length ? Math.round((done / steps.length) * 100) : null;
+  const left = g.deadline ? Math.round((Date.parse(g.deadline) - Date.parse(today)) / 864e5) : null;
+  const meta = [
+    g.status !== "active" ? `<span>${roleName(g)}</span>` : "",
+    g.deadline ? `<span>🎯 ${thDate(g.deadline)} ${Number(g.deadline.slice(0, 4)) + 543}${left >= 0 ? ` · อีก ${left} วัน` : " · เลยกำหนด"}</span>` : "",
+    steps.length ? `<span>งาน ${done}/${steps.length}</span>` : "",
+    rTarget ? `<span>กิจวัตร 7 วัน ${rDone}/${rTarget}</span>` : "",
+    `<span>🌱 ${g.kept} วัน</span>`,
+  ].filter(Boolean).join("");
+  const next = todo[0];
+  const nextHtml = next && g.status !== "done" ? `<div class="gc-next"><b>ถัดไป</b>${escapeHtml(next.title)}${whenTag(next, today)}</div>` : "";
+  const rtHtml = routines.map((t) => {
+    const n = Math.min(t.weekTarget, 7), k = Math.min(t.weekDone, n);
+    return `<div class="rt"><span class="rt-name">${escapeHtml(t.title)}</span><span class="rt-when">${freq(t)}${mins(t.minutes)}</span><span class="rt-count ${k >= n ? "ok" : ""}"><b>${k}/${n}</b><small>7 วันล่าสุด</small></span></div>`;
   }).join("");
-  const list = steps.length ? `<details${steps.length <= 4 ? " open" : ""}><summary>งานทีละขั้น ${steps.length} ชิ้น</summary><ul class="tasks">${steps.map((t) =>
-    `<li class="${t.status === "done" ? "done" : ""}"><span class="mk">${t.status === "done" ? "✓" : "○"}</span><span>${escapeHtml(t.title)}${t.status === "done" ? "" : t.due ? ` <small style="color:${t.due < today ? "#b5483f" : "var(--muted)"}">· ภายใน ${thDate(t.due)}</small>` : t.est ? ` <small style="color:var(--muted)">· ราว ${DAY[new Date(t.est + "T00:00:00Z").getUTCDay()]} ${thDate(t.est)}</small>` : ""}${t === firstTodo ? '<span class="next">ถัดไป</span>' : ""}</span></li>`).join("")}</ul></details>` : "";
-  return `<article class="g">
-    <div class="g-top"><span class="role r-${role}">${roleName}</span><span>${dl}</span></div>
-    <h3>${escapeHtml(g.title)}</h3>
-    ${steps.length ? `<div class="meter" role="img" aria-label="เสร็จ ${pct}%"><i style="width:${pct}%"></i></div><p class="meta">เสร็จ ${done} จาก ${steps.length} ชิ้น · เหลือ ${steps.length - done} ชิ้น · รักษาสัญญา ${g.kept} วัน</p>` : `<p class="meta">รักษาสัญญา ${g.kept} วัน</p>`}
-    ${g.status === "paused" && steps.some((t) => t.status !== "done") ? '<p class="meta">ยังไม่ได้จัดลงวัน เพราะเป้านี้เก็บไว้ก่อน · อยากเริ่ม พิมพ์ในแชทคิม เช่น "ย้ายเรื่องนี้เป็นโปรเจกต์"</p>' : ""}
-    ${rows}${list}
-  </article>`;
+  const SHOW = 5, doneList = steps.filter((t) => t.status === "done");
+  const stepHtml = todo.length || doneList.length ? `
+    <p class="sub-h">งานทีละขั้น · เหลือ ${todo.length}</p>
+    <ul class="tasks">${todo.slice(0, SHOW).map((t) => taskLi(t, today)).join("")}</ul>
+    ${todo.length > SHOW ? `<details class="more"><summary>+ อีก ${todo.length - SHOW} งาน</summary><ul class="tasks">${todo.slice(SHOW).map((t) => taskLi(t, today)).join("")}</ul></details>` : ""}
+    ${doneList.length ? `<details class="more"><summary>✓ เสร็จแล้ว ${doneList.length} งาน</summary><ul class="tasks">${doneList.map((t) => taskLi(t, today)).join("")}</ul></details>` : ""}` : "";
+  const hint = g.status === "paused" && todo.length ? '<p class="hint">เป้านี้เก็บไว้ก่อน คิมยังไม่จัดลงวัน (ยกเว้นงานที่มีกำหนดส่ง) · อยากเริ่ม พิมพ์ในแชทคิม เช่น "ย้ายเรื่องนี้เป็นโปรเจกต์"</p>' : "";
+  return `<details class="gc r-${rk}"${open ? " open" : ""}>
+    <summary>
+      <div class="gc-row"><span class="gc-title">${escapeHtml(g.title)}</span>${pct !== null && g.status !== "done" ? `<span class="gc-pct">${pct}%</span>` : g.status === "done" ? '<span class="gc-pct">🌸</span>' : ""}<span class="chev">▶</span></div>
+      ${pct !== null && g.status === "active" ? `<div class="meter" role="img" aria-label="${pct}%"><i style="width:${pct}%"></i></div>` : '<div style="height:6px"></div>'}
+      <div class="gc-meta">${meta}</div>
+      ${open ? "" : nextHtml}
+    </summary>
+    <div class="gc-body">
+      ${open ? nextHtml : ""}
+      ${rtHtml ? `<p class="sub-h">กิจวัตร</p>${rtHtml}` : ""}
+      ${stepHtml}
+      ${!rtHtml && !stepHtml ? '<p class="hint">ยังไม่มีงานในเป้านี้</p>' : ""}
+      ${hint}
+    </div>
+  </details>`;
 }
 
 function drawGoals(data) {
@@ -281,20 +327,23 @@ function drawGoals(data) {
   const others = data.goals.filter((g) => g.status !== "active");
   const steps = active.flatMap((g) => g.tasks.filter((t) => t.status !== "routine"));
   const routines = active.flatMap((g) => g.tasks.filter((t) => t.status === "routine"));
-  const rDone = routines.reduce((s, t) => s + Math.min(t.weekDone, t.weekTarget), 0);
+  const rDone = routines.reduce((s, t) => s + Math.min(t.weekDone, Math.min(t.weekTarget, 7)), 0);
   const rTarget = routines.reduce((s, t) => s + Math.min(t.weekTarget, 7), 0);
   const stepsDone = steps.filter((t) => t.status === "done").length;
   document.getElementById("goal-sum").innerHTML = `
     <div><b>${active.length}</b><span>เป้าที่กำลังทำ</span></div>
-    <div><b>${stepsDone}/${steps.length}</b><span>งานทีละขั้นเสร็จ</span></div>
-    <div><b>${rTarget ? `${rDone}/${rTarget}` : "–"}</b><span>กิจวัตร 7 วันล่าสุด</span></div>`;
+    <div><b>${stepsDone}/${steps.length}</b><span>งานเสร็จ</span></div>
+    <div><b>${rTarget ? `${Math.round((rDone / rTarget) * 100)}%` : "–"}</b><span>กิจวัตร 7 วัน</span></div>`;
+  const order = ["main", "secondary", "project", "keep"];
+  const groups = order.map((r) => [r, active.filter((g) => roleKey(g) === r)]).filter(([, l]) => l.length);
+  let first = true;
+  const goalsHtml = groups.map(([r, list]) => `<p class="grp-h">${ROLE[r]}${list.length > 1 ? ` · ${list.length}` : ""}</p>${list.map((g) => { const o = first; first = false; return goalCard(g, data.today, o); }).join("")}`).join("");
   const err = data.errands ?? { todo: [], done: 0 };
-  const errHtml = err.todo.length || err.done ? `<p class="section-h">📌 งานทั่วไป · ค้าง ${err.todo.length} · เคลียร์แล้ว ${err.done}</p>
-    <ul class="tasks">${err.todo.map((e) => `<li><span class="mk">○</span><span>${escapeHtml(e.title)}${e.due ? ` <small style="color:${e.due < data.today ? "#b5483f" : "var(--muted)"}">· ${thDate(e.due)}</small>` : ""}</span></li>`).join("")}</ul>` : "";
+  const errHtml = err.todo.length || err.done ? `<p class="grp-h">📌 งานทั่วไป · ค้าง ${err.todo.length}${err.done ? ` · เคลียร์แล้ว ${err.done}` : ""}</p>
+    <div class="gc errs" style="padding:4px 14px"><ul class="tasks">${err.todo.map((e) => taskLi({ ...e, status: "todo" }, data.today)).join("") || '<li><span class="t" style="color:var(--muted)">เคลียร์หมดแล้ว 🎉</span></li>'}</ul></div>` : "";
+  const otherHtml = others.length ? `<p class="grp-h">เก็บไว้ก่อน / สำเร็จแล้ว · ${others.length}</p>${others.map((g) => goalCard(g, data.today, false)).join("")}` : "";
   document.getElementById("goal-cards").innerHTML =
-    (active.length ? active.map((g) => goalCard(g, data.today)).join("") : '<p class="note">ยังไม่มีเป้าที่กำลังทำ พิมพ์ "แผนชีวิต" ในแชทคิมได้เลย</p>') +
-    errHtml +
-    (others.length ? `<p class="section-h">เป้าที่เก็บไว้ / สำเร็จแล้ว</p>${others.map((g) => goalCard(g, data.today)).join("")}` : "");
+    (active.length ? goalsHtml : '<p class="hint">ยังไม่มีเป้าที่กำลังทำ พิมพ์ "แผนชีวิต" ในแชทคิมได้เลย</p>') + errHtml + otherHtml;
 }
 
 function escapeHtml(s) { return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]); }
@@ -348,11 +397,12 @@ function demoData() {
       { title: "สอบ IELTS ให้ได้ 7", priority: "main", status: "active", kept: 40, stage: 3, stageName: "พุ่มไม้", deadline: ahead(138), tasks: [
         r("เรียน Angkriz", 60, [2, 6], null, 1), r("ท่องศัพท์และทบทวน", 30, [0, 1, 2, 3, 4, 5, 6], null, 5), r("ดูสื่อภาษาอังกฤษ", 30, [1, 2, 3, 5, 6], null, 3), r("ทำข้อสอบเสมือนจริง", 120, [6], null, 0)] },
       { title: "Shopee affiliate เก็บเงิน 300,000 ไป exchange", priority: "secondary", status: "active", kept: 6, stage: 1, stageName: "แตกหน่อ", deadline: ahead(307), tasks: [
-        { title: "เลือกสินค้า 3 ชิ้นที่จะทำคลิป", status: "done" }, { title: "ถ่ายคลิปสินค้าชิ้นแรก", status: "done" }, { title: "ตัดต่อและพากย์เสียง", status: "todo" }, { title: "โพสต์คลิปแรก", status: "todo" }, { title: "ดู insight หลัง 3 วัน", status: "todo" }] },
-      { title: "หุ่นดี สุขภาพดี", priority: "keep", status: "active", kept: 12, stage: 2, stageName: "ต้นกล้า", tasks: [r("เข้านอนก่อนเที่ยงคืน", 5, [0, 1, 2, 3, 4, 5, 6], null, 4), r("ออกกำลังกาย", 20, null, 3, 2)] },
-      { title: "ช่วยแม่ตัดสินใจเรื่องปิดบริษัท", priority: "project", status: "active", kept: 1, stage: 1, stageName: "แตกหน่อ", deadline: ahead(64), tasks: t(4, 1) },
+        { title: "เลือกสินค้า 3 ชิ้นที่จะทำคลิป", status: "done" }, { title: "ถ่ายคลิปสินค้าชิ้นแรก", status: "done" }, { title: "ตัดต่อและพากย์เสียง", status: "todo", est: ahead(1) }, { title: "โพสต์คลิปแรก", status: "todo", est: ahead(3) }, { title: "ดู insight หลัง 3 วัน", status: "todo", est: ahead(6) }] },
+      { title: "ดูงานอู่และคุยกับแม่เรื่องบริษัท", priority: "project", status: "active", kept: 2, stage: 1, stageName: "แตกหน่อ", tasks: [
+        { title: "อู่ต่อเรือ: ทดลองใช้ FlowAccount และกรอกข้อมูลโครงสร้าง", status: "todo", due: ahead(3) }, { title: "ประเมินปิดบริษัท: รวบรวมข้อมูลการเงิน", status: "todo", due: ahead(4) }, { title: "ประเมินปิดบริษัท: ร่างรายงานข้อเสนอพร้อมเหตุผล", status: "todo", due: ahead(5) }, { title: "นัดคุยกับแม่", status: "todo", est: ahead(8) }, { title: "สรุปทางเลือก 3 แบบ", status: "todo", est: ahead(10) }, { title: "เตรียมคำถามสำหรับนักบัญชี", status: "todo", est: ahead(12) }, { title: "ลิสต์ลูกค้าอู่ปัจจุบัน", status: "done" }] },
+      { title: "หุ่นดี สุขภาพดี", priority: "keep", status: "active", kept: 12, stage: 2, stageName: "ต้นกล้า", tasks: [r("วางแผนมื้อให้ใกล้ 1,650–1,750 kcal และโปรตีน 90–110 กรัม", 10, [0, 1, 2, 3, 4, 5, 6], null, 0), r("เตรียมตัวเข้านอนและค่อยๆ เลื่อนเวลาไป 23:30", 10, [0, 1, 2, 3, 4, 5, 6], null, 4), r("พิลาทิสเสริม", 45, null, 1, 0), { title: "ทบทวนผลทดลองอาหาร", status: "todo", due: ahead(20) }] },
       { title: "นั่งสมาธิวันละ 10 นาที", priority: "main", status: "done", kept: 70, stage: 5, stageName: "สำเร็จแล้ว", tasks: t(14, 14) },
-      { title: "หารายได้เสริม", priority: "main", status: "paused", kept: 3, stage: 1, stageName: "แตกหน่อ", tasks: t(3, 1) },
+      { title: "เลือกทริปปลายปีและจองทัวร์", priority: "project", status: "paused", kept: 0, stage: 0, stageName: "เมล็ด", deadline: ahead(62), tasks: [{ title: "🧳 สำรวจจุดหมายและช่วงวันที่สะดวก", status: "todo" }] },
     ],
   };
 }
