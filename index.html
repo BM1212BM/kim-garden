@@ -125,10 +125,11 @@
   </div>
 </main>
 <script>
-// ===== ตั้งค่า: แก้ 2 บรรทัดนี้ =====
-const LIFF_ID = "2012262464-p26qrQrC";
+// ===== ตั้งค่า =====
+// LIFF ID ไม่ต้องใส่แล้ว: หน้าสวนถามจาก garden-data เอง (ใช้ Secret LIFF_ID ใน Supabase) · ใส่ตรงนี้ก็ได้ถ้าอยากบังคับ
+let LIFF_ID = "";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v9";
+const VERSION = "v10";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -417,7 +418,8 @@ function demoData() {
 (async () => {
   if (new URLSearchParams(location.search).has("demo")) return render(demoData(), "เธอ (ตัวอย่าง)");
   try {
-    if (!LIFF_ID || LIFF_ID.includes("ใส่")) return showState("ยังไม่ได้ใส่ LIFF ID ในไฟล์ index.html");
+    if (!LIFF_ID) LIFF_ID = new URLSearchParams(location.search).get("liff") || (await fetch(`${FUNCTION_URL}?config=1`).then((r) => r.json()).catch(() => ({}))).liffId || "";
+    if (!LIFF_ID) return showState("หา LIFF ID ไม่เจอ: ตรวจว่า Supabase Secrets มี LIFF_ID และ deploy garden-data ตัวล่าสุดแล้ว");
     await liff.init({ liffId: LIFF_ID });
     if (!liff.isLoggedIn()) return liff.login();
     if (!liff.getIDToken()) return showState("ไม่ได้รับ ID token: เปิด scope openid ในแท็บ LIFF แล้วลองใหม่");
