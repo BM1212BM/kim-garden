@@ -82,6 +82,36 @@
   .r-main { --rc: #2f8a5c; } .r-secondary { --rc: #3a73a8; } .r-keep { --rc: #b4537a; } .r-project { --rc: #a87a2e; } .r-parked, .r-done { --rc: #a5a194; }
   .gc.r-parked .gc-title, .gc.r-done .gc-title { color: var(--muted); font-weight: 500; }
   .errs .tasks li { padding: 6px 0; }
+  /* แท็บวันนี้ */
+  .daypick { display: flex; gap: 6px; margin-bottom: 10px; }
+  .daypick button { flex: 1; border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 6px 4px; font: inherit; font-size: 13px; color: var(--muted); line-height: 1.3; }
+  .daypick button b { display: block; font-size: 14px; color: var(--ink); }
+  .daypick button[aria-pressed="true"] { border-color: var(--leaf); background: #eef7f1; }
+  .daypick button[aria-pressed="true"] b { color: var(--leaf); }
+  .dsum { font-size: 13px; color: var(--muted); margin: 2px 2px 6px; }
+  .dbar { height: 6px; background: var(--empty); border-radius: 99px; overflow: hidden; margin-bottom: 8px; }
+  .dbar i { display: block; height: 100%; background: var(--leaf); border-radius: 99px; transition: width .3s; }
+  .trow { display: flex; align-items: flex-start; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--line); }
+  .trow:last-child { border-bottom: 0; }
+  .ttime { width: 40px; flex: none; font-size: 13px; color: var(--muted); padding-top: 3px; }
+  .tchk { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 2px solid #c4bfb2; background: var(--card); display: grid; place-items: center; font-size: 15px; color: #fff; padding: 0; cursor: pointer; }
+  .tchk.on { background: var(--leaf); border-color: var(--leaf); }
+  .tchk.skip { border-style: dashed; color: var(--muted); }
+  .tchk:disabled { opacity: .5; }
+  .tbody { flex: 1; min-width: 0; }
+  .ttitle { font-size: 15px; font-weight: 500; line-height: 1.4; }
+  .trow.done .ttitle { color: var(--muted); text-decoration: line-through; font-weight: 400; }
+  .trow.none .ttitle { color: var(--muted); font-weight: 400; }
+  .tmeta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .tmeta .warn { color: #c0563f; font-weight: 500; }
+  .tmore { flex: none; border: 0; background: none; font: inherit; font-size: 13px; color: var(--leaf); padding: 4px 2px; cursor: pointer; }
+  .tgrp { font-size: 12px; font-weight: 700; color: var(--muted); margin: 14px 0 0; }
+  .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; z-index: 10; }
+  .sheet { background: var(--card); width: 100%; max-width: 480px; margin: 0 auto; border-radius: 18px 18px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
+  .sheet h4 { margin: 0 0 4px; font-size: 15px; } .sheet p { margin: 0 0 12px; font-size: 13px; color: var(--muted); }
+  .sheet button, .sheet label.btn { display: block; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 8px; font: inherit; font-size: 15px; color: var(--ink); cursor: pointer; }
+  .sheet input[type=date] { font: inherit; font-size: 15px; border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; margin-left: 6px; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #2b2a26; color: #fff; font-size: 14px; padding: 10px 16px; border-radius: 12px; max-width: 90%; z-index: 20; }
   .section-h { font-size: 13px; font-weight: 500; color: var(--muted); margin: 18px 0 2px; }
 </style>
 </head>
@@ -97,10 +127,15 @@
       <div class="stat"><b id="s-total">0</b><span>วันทั้งหมด</span></div>
     </div>
     <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="today" aria-selected="false">วันนี้</button>
       <button class="tab" role="tab" data-tab="garden" aria-selected="true">สวน</button>
       <button class="tab" role="tab" data-tab="goals" aria-selected="false">เป้าหมาย</button>
       <button class="tab" role="tab" data-tab="streak" aria-selected="false">ต่อเนื่อง</button>
     </div>
+    <section class="card" data-panel="today" hidden>
+      <div class="daypick" id="daypick"></div>
+      <div id="dayview"><p class="note">กำลังโหลดแผน…</p></div>
+    </section>
     <section class="card" data-panel="garden">
       <svg id="garden" viewBox="0 0 360 250" role="img" aria-label="สวนเป้าหมาย"></svg>
       <ul class="goal-list" id="goal-list"></ul>
@@ -129,7 +164,7 @@
 // LIFF ID ไม่ต้องใส่แล้ว: หน้าสวนถามจาก garden-data เอง (ใช้ Secret LIFF_ID ใน Supabase) · ใส่ตรงนี้ก็ได้ถ้าอยากบังคับ
 let LIFF_ID = "";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v11";
+const VERSION = "v12";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -379,11 +414,117 @@ function render(data, name) {
   drawStreak(data.days, data.today);
 }
 
+function openTab(name) {
+  document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", t.dataset.tab === name));
+  document.querySelectorAll("[data-panel]").forEach((p) => (p.hidden = p.dataset.panel !== name));
+  if (name === "today" && !DAYS) loadDays();
+}
 document.querySelector(".tabs").addEventListener("click", (e) => {
-  const tab = e.target.closest(".tab"); if (!tab) return;
-  document.querySelectorAll(".tab").forEach((t) => t.setAttribute("aria-selected", t === tab));
-  document.querySelectorAll("[data-panel]").forEach((p) => (p.hidden = p.dataset.panel !== tab.dataset.tab));
+  const tab = e.target.closest(".tab"); if (tab) openTab(tab.dataset.tab);
 });
+
+// ===== แท็บวันนี้: แผน 3 วัน ติ๊ก/ย้อน/เลื่อนได้ในหน้านี้ =====
+let ID_TOKEN = null, DAYS = null, DAY_I = 0, BUSY = false;
+const DEMO = new URLSearchParams(location.search).has("demo");
+const dayName = (d, i) => i === 0 ? "วันนี้" : i === 1 ? "พรุ่งนี้" : "มะรืน";
+const fmtM = (m) => !m || m <= 5 ? "" : m >= 60 ? `${+(m / 60).toFixed(1)} ชม.` : `${m} นาที`;
+function toast(msg) { if (!msg) return; const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
+
+async function loadDays() {
+  if (DEMO) { DAYS = demoDays(); return drawDays(); }
+  try {
+    const r = await fetch(`${FUNCTION_URL}?days=1`, { headers: { "x-line-id-token": ID_TOKEN } });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || r.status);
+    if (!j.planner) { document.getElementById("dayview").innerHTML = '<p class="hint">ยังไม่ได้จัดแผนชีวิต พิมพ์ "แผนชีวิต" ในแชทคิมก่อนนะ</p>'; return; }
+    DAYS = j; drawDays();
+  } catch (e) { document.getElementById("dayview").innerHTML = `<p class="hint">โหลดแผนไม่สำเร็จ (${escapeHtml(String(e.message || e))}) · ตรวจว่า deploy garden-data และ line-webhook ตัวล่าสุดแล้ว</p>`; }
+}
+
+async function act(data) {
+  if (BUSY) return; BUSY = true;
+  document.querySelectorAll("#dayview button").forEach((b) => (b.disabled = true));
+  try {
+    if (DEMO) { toast("(ตัวอย่าง) " + data); return; }
+    const r = await fetch(FUNCTION_URL, { method: "POST", headers: { "x-line-id-token": ID_TOKEN, "content-type": "application/json" }, body: JSON.stringify({ data }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || r.status);
+    toast(j.note);
+    await loadDays();
+  } catch (e) { toast("ทำไม่สำเร็จ ลองอีกครั้งนะ"); } finally { BUSY = false; document.querySelectorAll("#dayview button").forEach((b) => (b.disabled = false)); }
+}
+
+function drawDays() {
+  const pick = document.getElementById("daypick");
+  pick.innerHTML = DAYS.days.map((d, i) => `<button aria-pressed="${i === DAY_I}" data-i="${i}"><b>${dayName(d.day, i)}</b>${DAY[new Date(d.day + "T00:00:00Z").getUTCDay()]} ${thDate(d.day)}</button>`).join("");
+  pick.onclick = (e) => { const b = e.target.closest("button"); if (!b) return; DAY_I = Number(b.dataset.i); drawDays(); };
+  const d = DAYS.days[DAY_I], today = DAY_I === 0;
+  const v = document.getElementById("dayview");
+  if (d.rest) { v.innerHTML = '<p class="hint">วันพัก 🌙 พักให้เต็มที่นะ</p>'; return; }
+  const kept = d.items.filter((x) => ["full", "small", "partial"].includes(x.result)).length;
+  const pct = d.items.length ? Math.round((kept / d.items.length) * 100) : 0;
+  const row = (x) => {
+    const done = ["full", "small", "partial"].includes(x.result), none = x.result === "none";
+    const meta = [
+      x.carry ? `<span class="warn">↩ ${escapeHtml(x.carry)}</span>` : "",
+      escapeHtml(x.goal || ""), fmtM(x.minutes),
+      x.fixed ? `📌 นัด ${x.fixed}` : x.due ? (x.due < DAYS.today && !done ? `<span class="warn">⏰ เลยกำหนด ${thDate(x.due)}</span>` : `⏰ ส่ง ${thDate(x.due)}`) : "",
+    ].filter(Boolean).join(" · ");
+    const chk = !today ? "" : done ? `<button class="tchk on" data-act="a=pundo&p=${x.pid}" aria-label="เอาติ๊กออก">✓</button>`
+      : none ? `<button class="tchk skip" disabled aria-label="ข้ามแล้ว">–</button>`
+      : `<button class="tchk" data-act="a=pdone&p=${x.pid}" aria-label="ทำเสร็จ"></button>`;
+    const more = today && !x.result && !x.fixed ? `<button class="tmore" data-skip="${x.pid}" data-title="${escapeHtml(x.title)}" data-routine="${x.routine ? 1 : ""}" data-due="${x.due || ""}">เลื่อน</button>` : "";
+    return `<div class="trow ${done ? "done" : none ? "none" : ""}">${hasTime ? `<span class="ttime">${x.at || ""}</span>` : ""}${chk}<div class="tbody"><div class="ttitle">${x.icon ? x.icon + " " : ""}${escapeHtml(x.title)}</div><div class="tmeta">${meta}</div></div>${more}</div>`;
+  };
+  const hasTime = d.items.some((x) => x.at) || d.ext.some((x) => x.at);
+  const errRow = (e) => `<div class="trow">${hasTime ? '<span class="ttime"></span>' : ""}<button class="tchk" data-act="a=errand_done&t=${e.id}&back=plan" aria-label="ทำเสร็จ"></button><div class="tbody"><div class="ttitle">📌 ${escapeHtml(e.title)}</div><div class="tmeta">งานทั่วไป${e.due && e.due < DAYS.today ? ` · <span class="warn">ค้างตั้งแต่ ${thDate(e.due)}</span>` : ""}</div></div></div>`;
+  const extRow = (e) => `<div class="trow">${hasTime ? `<span class="ttime">${e.at || ""}</span>` : ""}<button class="tchk" data-act="a=ext&r=done&e=${encodeURIComponent(e.id)}" aria-label="ทำแล้ว"></button><div class="tbody"><div class="ttitle">${escapeHtml(e.title)}</div><div class="tmeta">${escapeHtml(e.cal || "")}${e.at ? ` · ${fmtM(e.minutes)}` : " · ทั้งวัน"}</div></div><button class="tmore" data-act="a=ext&r=skip&e=${encodeURIComponent(e.id)}">ข้าม</button></div>`;
+  v.innerHTML = `
+    <p class="dsum">${today ? `เสร็จ ${kept}/${d.items.length}` : `${d.items.length} อย่าง`} · ว่าง ~${fmtM(d.free) || "0 นาที"}${today && DAYS.late ? " · 🌙 ยังไม่ได้ปิดวัน" : ""}</p>
+    ${today ? `<div class="dbar"><i style="width:${Math.max(pct, 2)}%"></i></div>` : ""}
+    ${d.items.map(row).join("") || '<p class="hint">ยังไม่มีงานในแผน</p>'}
+    ${d.errands.length ? `<p class="tgrp">📌 งานทั่วไปวันนี้</p>${d.errands.map(errRow).join("")}` : ""}
+    ${d.ext.length ? `<p class="tgrp">📅 จากปฏิทิน</p>${d.ext.map(extRow).join("")}` : ""}
+    ${!today ? '<p class="note">ดูล่วงหน้าเฉยๆ ถึงวันจริงค่อยติ๊ก · อยากย้ายงาน กด "เลื่อน" ในวันนี้ หรือบอกคิมในแชท</p>' : ""}`;
+  v.onclick = (e) => {
+    const a = e.target.closest("[data-act]"); if (a) return act(a.dataset.act);
+    const s = e.target.closest("[data-skip]"); if (s) skipSheet(s.dataset);
+  };
+}
+
+function skipSheet(ds) {
+  const bg = document.createElement("div"); bg.className = "sheet-bg";
+  const tmr = DAYS.days[1]?.day, max = new Date(Date.parse(DAYS.today) + 90 * 864e5).toISOString().slice(0, 10);
+  bg.innerHTML = `<div class="sheet"><h4>เลื่อน "${escapeHtml(ds.title)}"</h4><p>${ds.due ? `กำหนดส่ง ${thDate(ds.due)}` : ds.routine ? "กิจวัตร: ข้ามวันนี้ รอบหน้าคิมจัดให้ตามปกติ" : "ไปวันไหนดี?"}</p>
+    ${ds.routine ? `<button data-to="skip">ข้ามวันนี้</button>` : `<button data-to="1">พรุ่งนี้</button><button data-to="auto">ให้คิมหาวันว่าง</button>
+    <label class="btn">เลือกวันเอง <input type="date" min="${tmr}" max="${max}" value="${tmr}"></label><button data-to="pick">เลื่อนไปวันที่เลือก</button>`}
+    <button data-to="">ยกเลิก</button></div>`;
+  document.body.appendChild(bg);
+  bg.onclick = (e) => {
+    if (e.target === bg) return bg.remove();
+    const b = e.target.closest("button[data-to]"); if (!b) return;
+    const to = b.dataset.to; bg.remove(); if (!to) return;
+    const d = bg.querySelector("input[type=date]")?.value;
+    act(`a=pmove&p=${ds.skip}&to=${to}${to === "pick" && d ? `&d=${d}` : ""}`);
+  };
+}
+
+function demoDays() {
+  const today = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
+  const ahead = (n) => new Date(Date.parse(today) + n * 864e5).toISOString().slice(0, 10);
+  const it = (pid, title, o = {}) => ({ pid, title, icon: "🌿", goal: "CMMU EN", minutes: 30, at: null, due: null, fixed: null, result: null, carry: null, routine: false, ...o });
+  return { planner: true, today, late: false, days: [
+    { day: today, free: 60, items: [
+      it(1, "ท่องศัพท์", { icon: "⭐", goal: "เป้าหลัก", at: "19:00", routine: true, result: "full" }),
+      it(2, "NPP: ส่งรีพอร์ตงานกลุ่ม", { at: "19:40", due: ahead(0) }),
+      it(3, "Affiliate: ทำตารางข้อมูลสินค้า 10 ชิ้น", { icon: "🌿", goal: "Side income : Affiliate", at: "20:20", due: ahead(-2), carry: "ค้างจากเมื่อวาน" }),
+      it(4, "นัดซ้อมพรีเซนต์กับเพื่อน", { at: "21:00", fixed: "21:00", minutes: 60 }),
+      it(5, "เดินบนลู่วิ่ง", { icon: "💚", goal: "ดูแลชีวิต", minutes: 35, routine: true, result: "none" }),
+    ], errands: [{ id: 9, title: "ไปส่งปณ. PKF", due: ahead(0) }], ext: [{ id: "x1", title: "ไปบางกระเจ้ากับต้า", at: "10:00", minutes: 120, cal: "Personal Life" }] },
+    { day: ahead(1), free: 240, items: [it(6, "ทำสไลด์ SM", { minutes: 90, due: ahead(3) }), it(7, "ท่องศัพท์", { icon: "⭐", goal: "เป้าหลัก", routine: true })], errands: [], ext: [] },
+    { day: ahead(2), free: 120, items: [it(8, "อ่านเคส OB", { minutes: 45, due: ahead(5) })], errands: [], ext: [] },
+  ] };
+}
 
 function showState(msg) { const s = document.getElementById("state"); s.hidden = false; s.textContent = `${msg} · ${VERSION}`; document.getElementById("app").hidden = true; }
 
@@ -416,13 +557,14 @@ function demoData() {
 }
 
 (async () => {
-  if (new URLSearchParams(location.search).has("demo")) return render(demoData(), "เธอ (ตัวอย่าง)");
+  if (DEMO) { render(demoData(), "เธอ (ตัวอย่าง)"); return openTab(new URLSearchParams(location.search).get("tab") || "today"); }
   try {
     if (!LIFF_ID) LIFF_ID = new URLSearchParams(location.search).get("liff") || (await fetch(`${FUNCTION_URL}?config=1`).then((r) => r.json()).catch(() => ({}))).liffId || "";
     if (!LIFF_ID) return showState("หา LIFF ID ไม่เจอ: ตรวจว่า Supabase Secrets มี LIFF_ID และ deploy garden-data ตัวล่าสุดแล้ว");
     await liff.init({ liffId: LIFF_ID });
     if (!liff.isLoggedIn()) return liff.login();
     if (!liff.getIDToken()) return showState("ไม่ได้รับ ID token: เปิด scope openid ในแท็บ LIFF แล้วลองใหม่");
+    ID_TOKEN = liff.getIDToken();
     const [profile, res] = await Promise.all([
       liff.getProfile().catch(() => null),
       fetch(FUNCTION_URL, { headers: { "x-line-id-token": liff.getIDToken() } }),
@@ -430,6 +572,8 @@ function demoData() {
     if (res.status === 404) return showState("ยังไม่ได้เริ่มกับคิมเลย กลับไปที่แชทแล้วตั้งเป้าแรกก่อนนะ 🌱");
     if (!res.ok) return showState(`เปิดสวนไม่สำเร็จ (ข้อมูลตอบกลับ ${res.status}: ${(await res.text()).slice(0, 120)})`);
     render(await res.json(), profile?.displayName ?? "");
+    const want = new URLSearchParams(location.search).get("tab") || (new URLSearchParams(location.search).get("liff.state") || "").match(/tab=(\w+)/)?.[1];
+    openTab(want === "today" || want === "goals" || want === "streak" ? want : "today");
   } catch (e) {
     const msg = e?.message || String(e);
     const hint = /liff|LIFF/.test(msg) ? "ตรวจ LIFF ID" : /fetch|network|Load failed/i.test(msg) ? "เรียก Supabase ไม่ได้: ตรวจว่าปิด JWT ของ garden-data แล้ว" : "";
