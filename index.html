@@ -129,7 +129,7 @@
 // LIFF ID ไม่ต้องใส่แล้ว: หน้าสวนถามจาก garden-data เอง (ใช้ Secret LIFF_ID ใน Supabase) · ใส่ตรงนี้ก็ได้ถ้าอยากบังคับ
 let LIFF_ID = "";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v10";
+const VERSION = "v11";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -285,7 +285,7 @@ const mins = (m) => (m > 5 ? (m >= 60 ? ` · ${+(m / 60).toFixed(1)} ชม.` : 
 
 const roleKey = (g) => g.status === "done" ? "done" : g.status === "paused" ? "parked" : (ROLE[g.priority] ? g.priority : "secondary");
 const roleName = (g) => g.status === "done" ? "สำเร็จแล้ว" : g.status === "paused" ? "เก็บไว้ก่อน" : ROLE[g.priority] ?? "เป้ารอง";
-const whenTag = (t, today) => t.status === "done" ? ""
+const whenTag = (t, today) => t.status === "done" ? (t.done_on ? ` <span class="when est">✓ ${t.done_on === today ? "วันนี้" : `${DAY[new Date(t.done_on + "T00:00:00Z").getUTCDay()]} ${thDate(t.done_on)}`}</span>` : "")
   : (t.est ? ` <span class="when est">≈ ${t.est === today ? "วันนี้" : `${DAY[new Date(t.est + "T00:00:00Z").getUTCDay()]} ${thDate(t.est)}`}</span>` : "")
   + (t.due ? ` <span class="when ${t.due < today ? "late" : "due"}">${t.due < today ? "เลยกำหนด" : "ส่ง"} ${thDate(t.due)}</span>` : "");
 const taskLi = (t, today) => `<li class="${t.status === "done" ? "done" : ""}"><span class="mk"></span><span class="t">${escapeHtml(t.title.replace(/^🧳 /, "🧳 "))}${whenTag(t, today)}</span></li>`;
@@ -405,7 +405,7 @@ function demoData() {
       { title: "สอบ IELTS ให้ได้ 7", priority: "main", status: "active", kept: 40, stage: 3, stageName: "พุ่มไม้", deadline: ahead(138), tasks: [
         r("เรียน Angkriz", 60, [2, 6], null, 1), r("ท่องศัพท์และทบทวน", 30, [0, 1, 2, 3, 4, 5, 6], null, 5), r("ดูสื่อภาษาอังกฤษ", 30, [1, 2, 3, 5, 6], null, 3), r("ทำข้อสอบเสมือนจริง", 120, [6], null, 0)] },
       { title: "Shopee affiliate เก็บเงิน 300,000 ไป exchange", priority: "secondary", status: "active", kept: 6, stage: 1, stageName: "แตกหน่อ", deadline: ahead(307), tasks: [
-        { title: "เลือกสินค้า 3 ชิ้นที่จะทำคลิป", status: "done" }, { title: "ถ่ายคลิปสินค้าชิ้นแรก", status: "done" }, { title: "ตัดต่อและพากย์เสียง", status: "todo", est: ahead(1) }, { title: "โพสต์คลิปแรก", status: "todo", est: ahead(3) }, { title: "ดู insight หลัง 3 วัน", status: "todo", est: ahead(6) }] },
+        { title: "เลือกสินค้า 3 ชิ้นที่จะทำคลิป", status: "done", done_on: ahead(-3) }, { title: "ถ่ายคลิปสินค้าชิ้นแรก", status: "done", done_on: ahead(0) }, { title: "ตัดต่อและพากย์เสียง", status: "todo", est: ahead(1) }, { title: "โพสต์คลิปแรก", status: "todo", est: ahead(3) }, { title: "ดู insight หลัง 3 วัน", status: "todo", est: ahead(6) }] },
       { title: "ดูงานอู่และคุยกับแม่เรื่องบริษัท", priority: "project", status: "active", kept: 2, stage: 1, stageName: "แตกหน่อ", tasks: [
         { title: "อู่ต่อเรือ: ทดลองใช้ FlowAccount และกรอกข้อมูลโครงสร้าง", status: "todo", due: ahead(3) }, { title: "ประเมินปิดบริษัท: รวบรวมข้อมูลการเงิน", status: "todo", due: ahead(4) }, { title: "ประเมินปิดบริษัท: ร่างรายงานข้อเสนอพร้อมเหตุผล", status: "todo", due: ahead(5) }, { title: "นัดคุยกับแม่", status: "todo", est: ahead(8) }, { title: "สรุปทางเลือก 3 แบบ", status: "todo", est: ahead(10) }, { title: "เตรียมคำถามสำหรับนักบัญชี", status: "todo", est: ahead(12) }, { title: "ลิสต์ลูกค้าอู่ปัจจุบัน", status: "done" }] },
       { title: "หุ่นดี สุขภาพดี", priority: "keep", status: "active", kept: 12, stage: 2, stageName: "ต้นกล้า", tasks: [r("วางแผนมื้อให้ใกล้ 1,650–1,750 kcal และโปรตีน 90–110 กรัม", 10, [0, 1, 2, 3, 4, 5, 6], null, 0), r("เตรียมตัวเข้านอนและค่อยๆ เลื่อนเวลาไป 23:30", 10, [0, 1, 2, 3, 4, 5, 6], null, 4), r("พิลาทิสเสริม", 45, null, 1, 0), { title: "ทบทวนผลทดลองอาหาร", status: "todo", due: ahead(20) }] },
