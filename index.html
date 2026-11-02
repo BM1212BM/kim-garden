@@ -90,6 +90,19 @@
   .when.due { background: #fdecd9; color: #9a5a17; } .when.late { background: #fbe1df; color: #b5483f; } .when.est { color: var(--muted); }
   .more { font-size: 13px; color: var(--leaf); cursor: pointer; padding: 6px 0 0; }
   .more summary { list-style: none; } .more .tasks { color: var(--ink); } .more summary::-webkit-details-marker { display: none; }
+  .gc-acts { display: flex; gap: 8px; margin: 12px 0 4px; }
+  .gc-acts button { flex: 1; border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 8px 6px; font: inherit; font-size: 13.5px; color: var(--ink); cursor: pointer; }
+  .gc-acts button:first-child { border-color: var(--leaf); color: var(--leaf); font-weight: 500; }
+  .sheet .fl { display: block; font-size: 13px; color: var(--muted); margin: 0 0 10px; }
+  .sheet .fl textarea, .sheet .fl select, .sheet .fl input { margin-left: 0; display: block; width: 100%; box-sizing: border-box; margin-top: 4px; border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; font: inherit; font-size: 15px; color: var(--ink); background: var(--card); }
+  .sheet .seg, .sheet .days { display: flex; gap: 6px; margin: 0 0 12px; flex-wrap: wrap; }
+  .sheet .seg button, .sheet .days button { flex: 1; width: auto; text-align: center; margin: 0; padding: 8px 6px; border-radius: 999px; font-size: 14px; }
+  .sheet .days button { flex: 0 0 auto; min-width: 40px; }
+  .sheet .seg button[aria-pressed="true"], .sheet .days button[aria-pressed="true"] { border-color: var(--leaf); background: #eef7f1; color: var(--leaf); font-weight: 500; }
+  .sheet button.primary { background: var(--leaf); border-color: var(--leaf); color: #fff; text-align: center; font-weight: 500; }
+  .sheet .rv { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 12px; padding: 10px; margin-bottom: 8px; font-size: 14px; line-height: 1.5; }
+  .sheet .rv input { margin-top: 3px; width: 18px; height: 18px; flex: 0 0 auto; accent-color: var(--leaf); }
+  .sheet .rsum { font-size: 14px; color: var(--ink); line-height: 1.6; margin: 0 0 12px; }
   .hint { font-size: 13px; color: var(--muted); background: var(--bg); border-radius: 10px; padding: 8px 10px; margin-top: 10px; }
   .r-main { --rc: #2f8a5c; } .r-secondary { --rc: #3a73a8; } .r-keep { --rc: #b4537a; } .r-project { --rc: #a87a2e; } .r-parked, .r-done { --rc: #a5a194; }
   .gc.r-parked .gc-title, .gc.r-done .gc-title { color: var(--muted); font-weight: 500; }
@@ -129,6 +142,7 @@
   .sheet h4 { margin: 0 0 4px; font-size: 15px; } .sheet p { margin: 0 0 12px; font-size: 13px; color: var(--muted); }
   .sheet button, .sheet label.btn { display: block; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 8px; font: inherit; font-size: 15px; color: var(--ink); cursor: pointer; }
   .sheet input[type=date] { font: inherit; font-size: 15px; border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; margin-left: 6px; }
+  .sheet .fl input[type=date] { margin-left: 0; width: 100%; padding: 9px 10px; }
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #2b2a26; color: #fff; font-size: 14px; padding: 10px 16px; border-radius: 12px; max-width: 90%; z-index: 20; }
   .section-h { font-size: 13px; font-weight: 500; color: var(--muted); margin: 18px 0 2px; }
 </style>
@@ -188,7 +202,7 @@
 // LIFF ID ไม่ต้องใส่แล้ว: หน้าสวนถามจาก garden-data เอง (ใช้ Secret LIFF_ID ใน Supabase) · ใส่ตรงนี้ก็ได้ถ้าอยากบังคับ
 let LIFF_ID = "";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v19";
+const VERSION = "v20";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -382,6 +396,7 @@ function goalCard(g, today, open) {
     ${todo.length > SHOW ? `<details class="more"><summary>+ อีก ${todo.length - SHOW} งาน</summary><ul class="tasks">${todo.slice(SHOW).map((t) => taskLi(t, today)).join("")}</ul></details>` : ""}
     ${doneList.length ? `<details class="more"><summary>✓ เสร็จแล้ว ${doneList.length} งาน</summary><ul class="tasks">${doneList.map((t) => taskLi(t, today)).join("")}</ul></details>` : ""}` : "";
   const hint = g.status === "paused" && todo.length ? '<p class="hint">เป้านี้เก็บไว้ก่อน คิมยังไม่จัดลงวัน (ยกเว้นงานที่มีกำหนดส่ง) · อยากเริ่ม พิมพ์ในแชทคิม เช่น "ย้ายเรื่องนี้เป็นโปรเจกต์"</p>' : "";
+  const acts = g.status === "active" || g.status === "paused" ? `<div class="gc-acts"><button data-addtask="${g.id}">+ เพิ่มงาน</button><button data-review="${g.id}">🔍 ให้คิมช่วยดู</button></div>` : "";
   return `<details class="gc r-${rk}"${open ? " open" : ""}>
     <summary>
       <div class="gc-row"><span class="gc-title">${escapeHtml(g.title)}</span>${pct !== null && g.status !== "done" ? `<span class="gc-pct">${pct}%</span>` : g.status === "done" ? '<span class="gc-pct">🌸</span>' : ""}<span class="chev">▶</span></div>
@@ -395,6 +410,7 @@ function goalCard(g, today, open) {
       ${stepHtml}
       ${!rtHtml && !stepHtml ? '<p class="hint">ยังไม่มีงานในเป้านี้</p>' : ""}
       ${hint}
+      ${acts}
     </div>
   </details>`;
 }
@@ -434,6 +450,8 @@ function render(data, name) {
   document.getElementById("s-jar").textContent = (data.stats.jarMonth / 60).toFixed(1);
   document.getElementById("s-month").textContent = `${data.stats.keptMonth}/${data.stats.promisedMonth}`;
   document.getElementById("s-total").textContent = data.stats.keptTotal;
+  GDATA = data;
+  (data.goals || []).forEach((g, i) => { if (g.id == null) g.id = -(i + 1); });   // หน้าตัวอย่าง
   drawGarden(data.goals);
   drawGoals(data);
   drawStreak(data.days, data.today);
@@ -442,7 +460,98 @@ function render(data, name) {
 }
 
 // ===== แท็บโน้ต: จัดกลุ่มตามหมวด (หมวดที่เป็นเป้ามาก่อน) ค้นได้ ลบ/ย้ายหมวดได้ =====
-let NOTES = [], GOAL_ORDER = [];
+let NOTES = [], GOAL_ORDER = [], GDATA = null, NAME = "";
+
+// ===== หน้าเป้าหมาย: เพิ่มงานเอง + ให้คิมช่วยดู =====
+async function goalAct(data) {
+  if (DEMO) {
+    await new Promise((r) => setTimeout(r, 400));
+    if (data.startsWith("a=goal_review")) return { ok: true, data: { goal: "ตัวอย่าง", summary: "งานส่วนใหญ่ชัดดี แต่ทำสไลด์ใช้เวลาน้อยไป และยังไม่มีขั้นซ้อมก่อนพรีเซนต์", ops: [
+      { op: "minutes", task_id: 1, minutes: 90, label: '⏱ "ทำสไลด์" 30 → 90 นาที — สไลด์ 10 หน้ามักใช้เวลาเกินชั่วโมง' },
+      { op: "add", title: "ซ้อมพรีเซนต์ 1 รอบ", minutes: 30, due: null, label: '➕ เพิ่ม "ซ้อมพรีเซนต์ 1 รอบ" (30 นาที) — กันตื่นเต้นวันจริง' } ] } };
+    return { ok: true, note: "(ตัวอย่าง) " + decodeURIComponent(data).slice(0, 80) };
+  }
+  const r = await fetch(FUNCTION_URL, { method: "POST", headers: { "x-line-id-token": ID_TOKEN, "content-type": "application/json" }, body: JSON.stringify({ data }) });
+  if (r.status === 401 && relogin()) return null;
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.status);
+  return j;
+}
+async function reloadGarden() {
+  if (DEMO) return;
+  try {
+    const r = await fetch(FUNCTION_URL, { headers: { "x-line-id-token": ID_TOKEN } });
+    if (r.status === 401 && relogin()) return;
+    if (r.ok) render(await r.json(), NAME);
+    DAYS = null;
+  } catch (_) {}
+}
+function openSheet(html) {
+  const bg = document.createElement("div"); bg.className = "sheet-bg";
+  bg.innerHTML = `<div class="sheet">${html}</div>`;
+  document.body.appendChild(bg);
+  bg.addEventListener("click", (e) => { if (e.target === bg || e.target.closest("[data-x]")) bg.remove(); });
+  return bg;
+}
+function addSheet(g) {
+  const bg = openSheet(`<h4>เพิ่มงานใน "${escapeHtml(g.title)}"</h4><p>พิมพ์บรรทัดละ 1 งาน ใส่หลายงานพร้อมกันได้ เพิ่มเสร็จค่อยกด "ให้คิมช่วยดู" ก็ได้</p>
+    <div class="seg"><button data-k="goal" aria-pressed="true">งานทีละขั้น</button><button data-k="routine" aria-pressed="false">กิจวัตร</button></div>
+    <label class="fl">ชื่องาน<textarea rows="4" placeholder="เช่น&#10;จองตั๋วเครื่องบิน&#10;หาที่พักโอซาก้า&#10;คิดงบค่าใช้จ่าย"></textarea></label>
+    <label class="fl">ใช้เวลาต่องาน (ประมาณ)<select name="m">${[15, 30, 45, 60, 90, 120].map((m) => `<option value="${m}" ${m === 30 ? "selected" : ""}>${fmtM(m) || m + " นาที"}</option>`).join("")}</select></label>
+    <div data-only="goal"><label class="fl">กำหนดส่ง (ถ้ามี)<input type="date" name="due" min="${GDATA?.today || ""}"></label>
+      <label class="fl">อยากทำวันไหน (ไม่ใส่ = ให้คิมหาวันว่างให้)<input type="date" name="on" min="${GDATA?.today || ""}"></label></div>
+    <div data-only="routine" hidden><p>ทำวันไหนบ้าง (ไม่เลือก = ให้คิมจัดตามจำนวนครั้ง)</p>
+      <div class="days">${["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d, i) => `<button data-d="${i}" aria-pressed="false">${d}</button>`).join("")}</div>
+      <label class="fl">ถ้าไม่เลือกวัน: สัปดาห์ละกี่ครั้ง<select name="pw">${[1, 2, 3, 4, 5, 6, 7].map((n) => `<option>${n}</option>`).join("")}</select></label></div>
+    <button class="primary" data-go>เพิ่มงาน</button><button data-x>ยกเลิก</button>`);
+  let kind = "goal";
+  bg.querySelector(".sheet").addEventListener("click", async (e) => {
+    const k = e.target.closest("[data-k]");
+    if (k) { kind = k.dataset.k; bg.querySelectorAll("[data-k]").forEach((b) => b.setAttribute("aria-pressed", b === k)); bg.querySelectorAll("[data-only]").forEach((d) => (d.hidden = d.dataset.only !== kind)); return; }
+    const d = e.target.closest("[data-d]");
+    if (d) { d.setAttribute("aria-pressed", d.getAttribute("aria-pressed") !== "true"); return; }
+    const go = e.target.closest("[data-go]");
+    if (!go) return;
+    const t = bg.querySelector("textarea").value.trim();
+    if (!t) { toast("พิมพ์ชื่องานก่อนนะ"); return; }
+    const q = new URLSearchParams({ a: "task_add", g: g.id, t, m: bg.querySelector("[name=m]").value, kind });
+    if (kind === "goal") { const due = bg.querySelector("[name=due]").value, on = bg.querySelector("[name=on]").value; if (due) q.set("due", due); if (on) q.set("on", on); }
+    else { q.set("days", [...bg.querySelectorAll("[data-d][aria-pressed=true]")].map((b) => b.dataset.d).join(",")); q.set("pw", bg.querySelector("[name=pw]").value); }
+    go.disabled = true; go.textContent = "กำลังเพิ่ม…";
+    try { const j = await goalAct(q.toString()); if (!j) return; bg.remove(); toast(j.note); await reloadGarden(); }
+    catch (_) { go.disabled = false; go.textContent = "เพิ่มงาน"; toast("เพิ่มไม่สำเร็จ ลองอีกครั้งนะ"); }
+  });
+  setTimeout(() => bg.querySelector("textarea").focus(), 50);
+}
+async function reviewSheet(g) {
+  const bg = openSheet(`<h4>🔍 คิมดูเป้า "${escapeHtml(g.title)}"</h4><p class="rsum">กำลังดูงานทั้งหมดของเป้านี้… (ราว 10–20 วินาที)</p><button data-x>ปิด</button>`);
+  const sh = bg.querySelector(".sheet");
+  try {
+    const j = await goalAct(`a=goal_review&g=${g.id}`);
+    if (!j) return;
+    const r = j.data || {};
+    if (r.error || !j.data) { sh.innerHTML = `<h4>🔍 ${escapeHtml(g.title)}</h4><p class="rsum">${escapeHtml(r.error || j.note || "ดูไม่สำเร็จ")}</p><button data-x>ปิด</button>`; return; }
+    const ops = r.ops || [];
+    sh.innerHTML = `<h4>🔍 ${escapeHtml(g.title)}</h4><p class="rsum">${escapeHtml(r.summary || "")}</p>
+      ${ops.length ? `<p>คิมเสนอปรับ ${ops.length} ข้อ เอาเครื่องหมายออกข้อที่ไม่อยากใช้</p>${ops.map((o, i) => `<label class="rv"><input type="checkbox" data-i="${i}" checked><span>${escapeHtml(o.label)}</span></label>`).join("")}
+        <button class="primary" data-apply>ใช้ข้อที่เลือก</button><button data-x>ไม่ใช้ ปิดไปก่อน</button>` : `<p>คิมว่าเป้านี้โอเคแล้ว ไม่มีอะไรต้องปรับ 👍</p><button data-x>ปิด</button>`}`;
+    sh.addEventListener("click", async (e) => {
+      const ap = e.target.closest("[data-apply]"); if (!ap) return;
+      const sel = [...sh.querySelectorAll("input[data-i]:checked")].map((c) => ops[Number(c.dataset.i)]).map(({ label, ...o }) => o);
+      if (!sel.length) { bg.remove(); return; }
+      ap.disabled = true; ap.textContent = "กำลังปรับ…";
+      try { const k = await goalAct(`a=review_apply&g=${g.id}&ops=${encodeURIComponent(JSON.stringify(sel))}`); if (!k) return; bg.remove(); toast(k.note); await reloadGarden(); }
+      catch (_) { ap.disabled = false; ap.textContent = "ใช้ข้อที่เลือก"; toast("ปรับไม่สำเร็จ ลองอีกครั้งนะ"); }
+    });
+  } catch (_) { sh.innerHTML = `<h4>🔍 ${escapeHtml(g.title)}</h4><p class="rsum">คิมดูไม่สำเร็จ ลองใหม่อีกครั้งนะ</p><button data-x>ปิด</button>`; }
+}
+document.addEventListener("click", (e) => {
+  const a = e.target.closest("[data-addtask]"), r = e.target.closest("[data-review]");
+  const g = (a || r) && GDATA?.goals?.find((x) => String(x.id) === (a ? a.dataset.addtask : r.dataset.review));
+  if (!g) return;
+  e.preventDefault();
+  a ? addSheet(g) : reviewSheet(g);
+});
 const NOTE_ICON = { idea: "💡", link: "🔗", image: "🖼", note: "📝" };
 function drawNotes() {
   const box = document.getElementById("note-list"); if (!box) return;
@@ -707,7 +816,8 @@ function demoData() {
     try { sessionStorage.removeItem("kim_relogin"); } catch (_) {}
     if (res.status === 404) return showState("ยังไม่ได้เริ่มกับคิมเลย กลับไปที่แชทแล้วตั้งเป้าแรกก่อนนะ 🌱");
     if (!res.ok) return showState(`เปิดสวนไม่สำเร็จ (ข้อมูลตอบกลับ ${res.status}: ${(await res.text()).slice(0, 120)})`);
-    render(await res.json(), profile?.displayName ?? "");
+    NAME = profile?.displayName ?? "";
+    render(await res.json(), NAME);
     const want = new URLSearchParams(location.search).get("tab") || (new URLSearchParams(location.search).get("liff.state") || "").match(/tab=(\w+)/)?.[1];
     openTab(["today", "goals", "streak", "notes", "garden"].includes(want) ? want : "today");
   } catch (e) {
