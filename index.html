@@ -90,6 +90,9 @@
   .when.due { background: #fdecd9; color: #9a5a17; } .when.late { background: #fbe1df; color: #b5483f; } .when.est { color: var(--muted); }
   .more { font-size: 13px; color: var(--leaf); cursor: pointer; padding: 6px 0 0; }
   .more summary { list-style: none; } .more .tasks { color: var(--ink); } .more summary::-webkit-details-marker { display: none; }
+  .editable { cursor: pointer; }
+  li.editable .ed { margin-left: auto; padding-left: 8px; font-size: 12.5px; color: var(--leaf); flex: 0 0 auto; }
+  .sheet button.danger { color: #c0563f; }
   .gc-acts { display: flex; gap: 8px; margin: 12px 0 4px; }
   .gc-acts button { flex: 1; border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 8px 6px; font: inherit; font-size: 13.5px; color: var(--ink); cursor: pointer; }
   .gc-acts button:first-child { border-color: var(--leaf); color: var(--leaf); font-weight: 500; }
@@ -143,6 +146,7 @@
   .sheet button, .sheet label.btn { display: block; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 8px; font: inherit; font-size: 15px; color: var(--ink); cursor: pointer; }
   .sheet input[type=date] { font: inherit; font-size: 15px; border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; margin-left: 6px; }
   .sheet .fl input[type=date] { margin-left: 0; width: 100%; padding: 9px 10px; }
+  .sheet .fl input[type=text] { font-size: 15px; padding: 9px 10px; }
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #2b2a26; color: #fff; font-size: 14px; padding: 10px 16px; border-radius: 12px; max-width: 90%; z-index: 20; }
   .section-h { font-size: 13px; font-weight: 500; color: var(--muted); margin: 18px 0 2px; }
 </style>
@@ -202,7 +206,7 @@
 // LIFF ID ไม่ต้องใส่แล้ว: หน้าสวนถามจาก garden-data เอง (ใช้ Secret LIFF_ID ใน Supabase) · ใส่ตรงนี้ก็ได้ถ้าอยากบังคับ
 let LIFF_ID = "";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v20";
+const VERSION = "v21";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -362,7 +366,7 @@ const whenTag = (t, today) => t.status === "done" ? (t.done_on ? ` <span class="
   : t.fixed ? ` <span class="when due">📌 ${t.fixed.day === today ? "วันนี้" : `${DAY[new Date(t.fixed.day + "T00:00:00Z").getUTCDay()]} ${thDate(t.fixed.day)}`} ${t.fixed.at}${t.minutes > 5 ? `–${(() => { const m = Number(t.fixed.at.slice(0, 2)) * 60 + Number(t.fixed.at.slice(3)) + t.minutes; return `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; })()}` : ""}</span>`
   : (t.est ? ` <span class="when est">≈ ${t.est === today ? "วันนี้" : `${DAY[new Date(t.est + "T00:00:00Z").getUTCDay()]} ${thDate(t.est)}`}</span>` : "")
   + (t.due ? ` <span class="when ${t.due < today ? "late" : "due"}">${t.due < today ? "เลยกำหนด" : "ส่ง"} ${thDate(t.due)}</span>` : "");
-const taskLi = (t, today) => `<li class="${t.status === "done" ? "done" : ""}"><span class="mk"></span><span class="t">${escapeHtml(t.title.replace(/^🧳 /, "🧳 "))}${whenTag(t, today)}</span></li>`;
+const taskLi = (t, today) => `<li class="${t.status === "done" ? "done" : ""}${t.id && t.status === "todo" ? " editable" : ""}"${t.id && t.status === "todo" ? ` data-edit="${t.id}"` : ""}><span class="mk"></span><span class="t">${escapeHtml(t.title.replace(/^🧳 /, "🧳 "))}${whenTag(t, today)}</span>${t.id && t.status === "todo" ? '<span class="ed">แก้</span>' : ""}</li>`;
 
 function goalCard(g, today, open) {
   const rk = roleKey(g);
@@ -387,7 +391,7 @@ function goalCard(g, today, open) {
   const nextHtml = next && g.status !== "done" ? `<div class="gc-next"><b>ถัดไป</b>${escapeHtml(next.title)}${whenTag(next, today)}</div>` : "";
   const rtHtml = routines.map((t) => {
     const n = Math.min(t.weekTarget, 7), k = Math.min(t.weekDone, n);
-    return `<div class="rt"><span class="rt-name">${escapeHtml(t.title)}</span><span class="rt-when">${freq(t)}${mins(t.minutes)}</span><span class="rt-count ${k >= n ? "ok" : ""}"><b>${k}/${n}</b><small>7 วันล่าสุด</small></span></div>`;
+    return `<div class="rt${t.id ? " editable" : ""}"${t.id ? ` data-edit="${t.id}"` : ""}><span class="rt-name">${escapeHtml(t.title)}</span><span class="rt-when">${freq(t)}${mins(t.minutes)}</span><span class="rt-count ${k >= n ? "ok" : ""}"><b>${k}/${n}</b><small>7 วันล่าสุด</small></span></div>`;
   }).join("");
   const SHOW = 5, doneList = steps.filter((t) => t.status === "done");
   const stepHtml = todo.length || doneList.length ? `
@@ -406,7 +410,7 @@ function goalCard(g, today, open) {
     </summary>
     <div class="gc-body">
       ${open ? nextHtml : ""}
-      ${rtHtml ? `<p class="sub-h">กิจวัตร</p>${rtHtml}` : ""}
+      ${rtHtml ? `<p class="sub-h">กิจวัตร <small style="font-weight:400">· แตะเพื่อแก้</small></p>${rtHtml}` : ""}
       ${stepHtml}
       ${!rtHtml && !stepHtml ? '<p class="hint">ยังไม่มีงานในเป้านี้</p>' : ""}
       ${hint}
@@ -451,7 +455,7 @@ function render(data, name) {
   document.getElementById("s-month").textContent = `${data.stats.keptMonth}/${data.stats.promisedMonth}`;
   document.getElementById("s-total").textContent = data.stats.keptTotal;
   GDATA = data;
-  (data.goals || []).forEach((g, i) => { if (g.id == null) g.id = -(i + 1); });   // หน้าตัวอย่าง
+  (data.goals || []).forEach((g, i) => { if (g.id == null) g.id = -(i + 1); if (DEMO) g.tasks.forEach((t, j) => { if (t.id == null) t.id = -(i * 100 + j + 1); }); });   // หน้าตัวอย่าง
   drawGarden(data.goals);
   drawGoals(data);
   drawStreak(data.days, data.today);
@@ -493,6 +497,68 @@ function openSheet(html) {
   bg.addEventListener("click", (e) => { if (e.target === bg || e.target.closest("[data-x]")) bg.remove(); });
   return bg;
 }
+function findTask(id) {
+  for (const g of GDATA?.goals || []) { const t = g.tasks.find((x) => String(x.id) === String(id)); if (t) return { g, t }; }
+  return null;
+}
+function editSheet(g, t) {
+  const routine = t.status === "routine";
+  const mOpts = [10, 15, 20, 30, 45, 60, 90, 120, 180];
+  if (t.minutes && !mOpts.includes(t.minutes)) mOpts.push(t.minutes);
+  const days = new Set(t.days || []);
+  const bg = openSheet(`<h4>แก้${routine ? "กิจวัตร" : "งาน"}</h4><p>${escapeHtml(g.title)}</p>
+    <label class="fl">ชื่อ<input type="text" name="title" maxlength="120" value="${escapeHtml(t.title)}"></label>
+    <label class="fl">ใช้เวลา<select name="m">${mOpts.sort((a, b) => a - b).map((m) => `<option value="${m}" ${m === (t.minutes || 30) ? "selected" : ""}>${fmtM(m) || m + " นาที"}</option>`).join("")}</select></label>
+    ${routine ? `<p>ทำวันไหนบ้าง (ไม่เลือก = ให้คิมจัดตามจำนวนครั้ง)</p>
+      <div class="days">${["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"].map((d, i) => `<button data-d="${i}" aria-pressed="${days.has(i)}">${d}</button>`).join("")}</div>
+      <label class="fl">ถ้าไม่เลือกวัน: สัปดาห์ละกี่ครั้ง<select name="pw">${[1, 2, 3, 4, 5, 6, 7].map((n) => `<option ${n === (t.per_week || 1) ? "selected" : ""}>${n}</option>`).join("")}</select></label>`
+    : `<label class="fl">กำหนดส่ง<input type="date" name="due" value="${t.due || ""}" min="${GDATA.today}"></label>
+      <label class="fl">ทำวันไหน${t.locked ? " (ล็อกไว้)" : t.est ? ` (ตอนนี้คิมจัดไว้ ${thDate(t.est)})` : ""}<input type="date" name="on" value="${t.locked || ""}" min="${GDATA.today}"></label>
+      ${t.locked ? '<button data-auto>ปลดล็อก ให้คิมหาวันว่างเอง</button>' : ""}`}
+    <button class="primary" data-save>บันทึก</button>
+    <button class="danger" data-del>ลบ${routine ? "กิจวัตร" : "งาน"}นี้</button>
+    <button data-x>ยกเลิก</button>`);
+  const sh = bg.querySelector(".sheet");
+  const send = async (data, btn, busy) => {
+    const old = btn.textContent; btn.disabled = true; btn.textContent = busy;
+    try { const j = await goalAct(data); if (!j) return; bg.remove(); toast(j.note); await reloadGarden(); }
+    catch (_) { btn.disabled = false; btn.textContent = old; toast("ทำไม่สำเร็จ ลองอีกครั้งนะ"); }
+  };
+  sh.addEventListener("click", (e) => {
+    const d = e.target.closest("[data-d]");
+    if (d) { d.setAttribute("aria-pressed", d.getAttribute("aria-pressed") !== "true"); return; }
+    const del = e.target.closest("[data-del]");
+    if (del) {
+      if (del.dataset.armed !== "1") { del.dataset.armed = "1"; del.textContent = "กดอีกครั้งเพื่อยืนยันลบ"; return; }
+      return send(`a=task_del&t=${t.id}`, del, "กำลังลบ…");
+    }
+    const au = e.target.closest("[data-auto]");
+    if (au) return send(`a=task_edit&t=${t.id}&on=auto`, au, "กำลังจัดใหม่…");
+    const sv = e.target.closest("[data-save]");
+    if (!sv) return;
+    const q = new URLSearchParams({ a: "task_edit", t: t.id });
+    const title = sh.querySelector("[name=title]").value.trim();
+    if (title && title !== t.title) q.set("title", title);
+    const m = Number(sh.querySelector("[name=m]").value);
+    if (m !== t.minutes) q.set("m", m);
+    if (routine) {
+      q.set("days", [...sh.querySelectorAll("[data-d][aria-pressed=true]")].map((b) => b.dataset.d).join(","));
+      q.set("pw", sh.querySelector("[name=pw]").value);
+      if (title) q.set("title", title);
+    } else {
+      const due = sh.querySelector("[name=due]").value, on = sh.querySelector("[name=on]").value;
+      if (due !== (t.due || "")) q.set("due", due || "none");
+      if (on && on !== (t.locked || "")) q.set("on", on);
+    }
+    if ([...q.keys()].length <= 2 && !routine) { bg.remove(); return; }
+    send(q.toString(), sv, "กำลังบันทึก…");
+  });
+}
+document.addEventListener("click", (e) => {
+  const el = e.target.closest("[data-edit]"); if (!el) return;
+  const f = findTask(el.dataset.edit); if (!f) return;
+  e.preventDefault(); editSheet(f.g, f.t);
+});
 function addSheet(g) {
   const bg = openSheet(`<h4>เพิ่มงานใน "${escapeHtml(g.title)}"</h4><p>พิมพ์บรรทัดละ 1 งาน ใส่หลายงานพร้อมกันได้ เพิ่มเสร็จค่อยกด "ให้คิมช่วยดู" ก็ได้</p>
     <div class="seg"><button data-k="goal" aria-pressed="true">งานทีละขั้น</button><button data-k="routine" aria-pressed="false">กิจวัตร</button></div>
