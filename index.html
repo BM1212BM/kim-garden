@@ -169,7 +169,7 @@
 // LIFF ID ไม่ต้องใส่แล้ว: หน้าสวนถามจาก garden-data เอง (ใช้ Secret LIFF_ID ใน Supabase) · ใส่ตรงนี้ก็ได้ถ้าอยากบังคับ
 let LIFF_ID = "";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v16";
+const VERSION = "v17";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -431,6 +431,15 @@ document.querySelector(".tabs").addEventListener("click", (e) => {
 
 // ===== แท็บวันนี้: แผน 3 วัน ติ๊ก/ย้อน/เลื่อนได้ในหน้านี้ =====
 let ID_TOKEN = null, DAYS = null, DAY_I = 0, BUSY = false;
+// ID token ของ LINE หมดอายุใน 1 ชม. (เปิดค้างไว้ หรือเปิดในเบราว์เซอร์ข้างนอก) → ล็อกอินใหม่อัตโนมัติ 1 ครั้ง
+function relogin() {
+  let tried = false;
+  try { tried = sessionStorage.getItem("kim_relogin") === "1"; sessionStorage.setItem("kim_relogin", "1"); } catch (_) {}
+  if (tried) return false;
+  try { liff.logout(); } catch (_) {}
+  liff.login({ redirectUri: location.href });
+  return true;
+}
 const DEMO = new URLSearchParams(location.search).has("demo");
 const dayName = (d, i) => i === 0 ? "วันนี้" : i === 1 ? "พรุ่งนี้" : "มะรืน";
 const fmtM = (m) => !m || m <= 5 ? "" : m >= 60 ? `${+(m / 60).toFixed(1)} ชม.` : `${m} นาที`;
@@ -440,6 +449,7 @@ async function loadDays() {
   if (DEMO) { DAYS = demoDays(); return drawDays(); }
   try {
     const r = await fetch(`${FUNCTION_URL}?days=1`, { headers: { "x-line-id-token": ID_TOKEN } });
+    if (r.status === 401 && relogin()) return;
     const j = await r.json();
     if (!r.ok) throw new Error(j.error || r.status);
     if (!j.planner) { document.getElementById("dayview").innerHTML = '<p class="hint">ยังไม่ได้จัดแผนชีวิต พิมพ์ "แผนชีวิต" ในแชทคิมก่อนนะ</p>'; return; }
@@ -453,6 +463,7 @@ async function act(data) {
   try {
     if (DEMO) { toast("(ตัวอย่าง) " + data); return; }
     const r = await fetch(FUNCTION_URL, { method: "POST", headers: { "x-line-id-token": ID_TOKEN, "content-type": "application/json" }, body: JSON.stringify({ data }) });
+    if (r.status === 401 && relogin()) return;
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || r.status);
     toast(j.note);
@@ -579,6 +590,9 @@ function demoData() {
       liff.getProfile().catch(() => null),
       fetch(FUNCTION_URL, { headers: { "x-line-id-token": liff.getIDToken() } }),
     ]);
+    if (res.status === 401 && relogin()) return;
+    if (res.status === 401) return showState("ล็อกอิน LINE หมดอายุ ปิดหน้านี้แล้วเปิดใหม่จากปุ่ม \"📋 เปิดในแอป\" ในแชทคิมนะ");
+    try { sessionStorage.removeItem("kim_relogin"); } catch (_) {}
     if (res.status === 404) return showState("ยังไม่ได้เริ่มกับคิมเลย กลับไปที่แชทแล้วตั้งเป้าแรกก่อนนะ 🌱");
     if (!res.ok) return showState(`เปิดสวนไม่สำเร็จ (ข้อมูลตอบกลับ ${res.status}: ${(await res.text()).slice(0, 120)})`);
     render(await res.json(), profile?.displayName ?? "");
