@@ -88,6 +88,8 @@
   .daypick button b { display: block; font-size: 14px; color: var(--ink); }
   .daypick button[aria-pressed="true"] { border-color: var(--leaf); background: #eef7f1; }
   .daypick button[aria-pressed="true"] b { color: var(--leaf); }
+  .notice { background: #eef7f1; border: 1px solid #cfe6d8; color: var(--ink); border-radius: 12px; padding: 10px 12px; margin: 0 0 10px; font-size: 13px; line-height: 1.55; }
+  .notice button { display: block; margin-top: 8px; border: 0; background: var(--leaf); color: #fff; border-radius: 999px; padding: 6px 14px; font: inherit; font-size: 13px; cursor: pointer; }
   .energy { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; font-size: 13px; color: var(--muted); }
   .energy button { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 13px; color: var(--ink); cursor: pointer; }
   .energy button[aria-pressed="true"] { border-color: var(--leaf); background: #eef7f1; color: var(--leaf); font-weight: 500; }
@@ -167,7 +169,7 @@
 // LIFF ID ไม่ต้องใส่แล้ว: หน้าสวนถามจาก garden-data เอง (ใช้ Secret LIFF_ID ใน Supabase) · ใส่ตรงนี้ก็ได้ถ้าอยากบังคับ
 let LIFF_ID = "";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v14";
+const VERSION = "v16";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -471,7 +473,7 @@ function drawDays() {
     const done = ["full", "small", "partial"].includes(x.result), none = x.result === "none";
     const meta = [
       x.carry ? `<span class="warn">↩ ${escapeHtml(x.carry)}</span>` : "",
-      escapeHtml(x.goal || ""), fmtM(x.minutes),
+      x.routine ? "🔁 กิจวัตร" : "", escapeHtml(x.goal || ""), fmtM(x.minutes),
       x.fixed ? `📌 นัด ${x.fixed}` : x.due ? (x.due < DAYS.today && !done ? `<span class="warn">⏰ เลยกำหนด ${thDate(x.due)}</span>` : `⏰ ส่ง ${thDate(x.due)}`) : "",
     ].filter(Boolean).join(" · ");
     const chk = !today ? "" : done ? `<button class="tchk on" data-act="a=pundo&p=${x.pid}" aria-label="เอาติ๊กออก">✓</button>`
@@ -485,7 +487,9 @@ function drawDays() {
   const extRow = (e) => `<div class="trow">${hasTime ? `<span class="ttime">${e.at || ""}</span>` : ""}<button class="tchk" data-act="a=ext&r=done&e=${encodeURIComponent(e.id)}" aria-label="ทำแล้ว"></button><div class="tbody"><div class="ttitle">${escapeHtml(e.title)}</div><div class="tmeta">${escapeHtml(e.cal || "")}${e.at ? ` · ${fmtM(e.minutes)}` : " · ทั้งวัน"}</div></div><button class="tmore" data-act="a=ext&r=skip&e=${encodeURIComponent(e.id)}">ข้าม</button></div>`;
   const en = DAYS.energy;
   const energyHtml = today ? `<div class="energy">พลังงานวันนี้ ${[["light", "🌿 เบาๆ"], ["normal", "🙂 ปกติ"], ["full", "⚡ เต็มที่"]].map(([k, l]) => `<button data-act="a=energy&v=${k}" aria-pressed="${en === k}">${l}</button>`).join("")}</div>` : "";
-  v.innerHTML = `${energyHtml}
+  const nt = today && DAYS.notice;
+  const noticeHtml = nt ? `<div class="notice">${escapeHtml(nt.text).replace(/\n/g, "<br>")}${nt.act ? `<button data-act="${nt.act}">${escapeHtml(nt.label || "ตกลง")}</button>` : ""}</div>` : "";
+  v.innerHTML = `${noticeHtml}${energyHtml}
     <p class="dsum">${today ? `เสร็จ ${kept}/${d.items.length}` : `${d.items.length} อย่าง`} · ว่าง ~${fmtM(d.free) || "0 นาที"}${today && DAYS.late ? " · 🌙 ยังไม่ได้ปิดวัน" : ""}</p>
     ${today ? `<div class="dbar"><i style="width:${Math.max(pct, 2)}%"></i></div>` : ""}
     ${d.items.map(row).join("") || '<p class="hint">ยังไม่มีงานในแผน</p>'}
@@ -519,7 +523,7 @@ function demoDays() {
   const today = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
   const ahead = (n) => new Date(Date.parse(today) + n * 864e5).toISOString().slice(0, 10);
   const it = (pid, title, o = {}) => ({ pid, title, icon: "🌿", goal: "CMMU EN", minutes: 30, at: null, due: null, fixed: null, result: null, carry: null, routine: false, ...o });
-  return { planner: true, today, late: false, energy: null, days: [
+  return { planner: true, today, late: false, energy: null, notice: { text: "🌿 เหนื่อยมา 2 วันติดแล้ว ให้คิมลดงานทั้งสัปดาห์ไหม? จะจัดแค่ราวครึ่งเดียว งานที่มีกำหนดส่งยังอยู่ครบ", act: "a=lighten&n=7&r=0.5", label: "ลดงาน 7 วัน" }, days: [
     { day: today, free: 60, items: [
       it(1, "ท่องศัพท์", { icon: "⭐", goal: "เป้าหลัก", at: "19:00", routine: true, result: "full" }),
       it(2, "NPP: ส่งรีพอร์ตงานกลุ่ม", { at: "19:40", due: ahead(0) }),
