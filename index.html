@@ -77,7 +77,7 @@
   .when { display: inline-block; font-size: 12px; border-radius: 6px; padding: 0 6px; margin-left: 2px; white-space: nowrap; }
   .when.due { background: #fdecd9; color: #9a5a17; } .when.late { background: #fbe1df; color: #b5483f; } .when.est { color: var(--muted); }
   .more { font-size: 13px; color: var(--leaf); cursor: pointer; padding: 6px 0 0; }
-  .more summary { list-style: none; } .more summary::-webkit-details-marker { display: none; }
+  .more summary { list-style: none; } .more .tasks { color: var(--ink); } .more summary::-webkit-details-marker { display: none; }
   .hint { font-size: 13px; color: var(--muted); background: var(--bg); border-radius: 10px; padding: 8px 10px; margin-top: 10px; }
   .r-main { --rc: #2f8a5c; } .r-secondary { --rc: #3a73a8; } .r-keep { --rc: #b4537a; } .r-project { --rc: #a87a2e; } .r-parked, .r-done { --rc: #a5a194; }
   .gc.r-parked .gc-title, .gc.r-done .gc-title { color: var(--muted); font-weight: 500; }
@@ -164,7 +164,7 @@
 // LIFF ID ไม่ต้องใส่แล้ว: หน้าสวนถามจาก garden-data เอง (ใช้ Secret LIFF_ID ใน Supabase) · ใส่ตรงนี้ก็ได้ถ้าอยากบังคับ
 let LIFF_ID = "";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v12";
+const VERSION = "v13";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -321,6 +321,7 @@ const mins = (m) => (m > 5 ? (m >= 60 ? ` · ${+(m / 60).toFixed(1)} ชม.` : 
 const roleKey = (g) => g.status === "done" ? "done" : g.status === "paused" ? "parked" : (ROLE[g.priority] ? g.priority : "secondary");
 const roleName = (g) => g.status === "done" ? "สำเร็จแล้ว" : g.status === "paused" ? "เก็บไว้ก่อน" : ROLE[g.priority] ?? "เป้ารอง";
 const whenTag = (t, today) => t.status === "done" ? (t.done_on ? ` <span class="when est">✓ ${t.done_on === today ? "วันนี้" : `${DAY[new Date(t.done_on + "T00:00:00Z").getUTCDay()]} ${thDate(t.done_on)}`}</span>` : "")
+  : t.fixed ? ` <span class="when due">📌 ${t.fixed.day === today ? "วันนี้" : `${DAY[new Date(t.fixed.day + "T00:00:00Z").getUTCDay()]} ${thDate(t.fixed.day)}`} ${t.fixed.at}${t.minutes > 5 ? `–${(() => { const m = Number(t.fixed.at.slice(0, 2)) * 60 + Number(t.fixed.at.slice(3)) + t.minutes; return `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; })()}` : ""}</span>`
   : (t.est ? ` <span class="when est">≈ ${t.est === today ? "วันนี้" : `${DAY[new Date(t.est + "T00:00:00Z").getUTCDay()]} ${thDate(t.est)}`}</span>` : "")
   + (t.due ? ` <span class="when ${t.due < today ? "late" : "due"}">${t.due < today ? "เลยกำหนด" : "ส่ง"} ${thDate(t.due)}</span>` : "");
 const taskLi = (t, today) => `<li class="${t.status === "done" ? "done" : ""}"><span class="mk"></span><span class="t">${escapeHtml(t.title.replace(/^🧳 /, "🧳 "))}${whenTag(t, today)}</span></li>`;
@@ -548,7 +549,7 @@ function demoData() {
       { title: "Shopee affiliate เก็บเงิน 300,000 ไป exchange", priority: "secondary", status: "active", kept: 6, stage: 1, stageName: "แตกหน่อ", deadline: ahead(307), tasks: [
         { title: "เลือกสินค้า 3 ชิ้นที่จะทำคลิป", status: "done", done_on: ahead(-3) }, { title: "ถ่ายคลิปสินค้าชิ้นแรก", status: "done", done_on: ahead(0) }, { title: "ตัดต่อและพากย์เสียง", status: "todo", est: ahead(1) }, { title: "โพสต์คลิปแรก", status: "todo", est: ahead(3) }, { title: "ดู insight หลัง 3 วัน", status: "todo", est: ahead(6) }] },
       { title: "ดูงานอู่และคุยกับแม่เรื่องบริษัท", priority: "project", status: "active", kept: 2, stage: 1, stageName: "แตกหน่อ", tasks: [
-        { title: "อู่ต่อเรือ: ทดลองใช้ FlowAccount และกรอกข้อมูลโครงสร้าง", status: "todo", due: ahead(3) }, { title: "ประเมินปิดบริษัท: รวบรวมข้อมูลการเงิน", status: "todo", due: ahead(4) }, { title: "ประเมินปิดบริษัท: ร่างรายงานข้อเสนอพร้อมเหตุผล", status: "todo", due: ahead(5) }, { title: "นัดคุยกับแม่", status: "todo", est: ahead(8) }, { title: "สรุปทางเลือก 3 แบบ", status: "todo", est: ahead(10) }, { title: "เตรียมคำถามสำหรับนักบัญชี", status: "todo", est: ahead(12) }, { title: "ลิสต์ลูกค้าอู่ปัจจุบัน", status: "done" }] },
+        { title: "อู่ต่อเรือ: ทดลองใช้ FlowAccount และกรอกข้อมูลโครงสร้าง", status: "todo", due: ahead(3) }, { title: "ประเมินปิดบริษัท: รวบรวมข้อมูลการเงิน", status: "todo", due: ahead(4) }, { title: "ประเมินปิดบริษัท: ร่างรายงานข้อเสนอพร้อมเหตุผล", status: "todo", due: ahead(5) }, { title: "นัดคุยกับแม่", status: "todo", est: ahead(8), minutes: 120, fixed: { day: ahead(6), at: "20:00" } }, { title: "สรุปทางเลือก 3 แบบ", status: "todo", est: ahead(10) }, { title: "เตรียมคำถามสำหรับนักบัญชี", status: "todo", est: ahead(12) }, { title: "ลิสต์ลูกค้าอู่ปัจจุบัน", status: "done" }] },
       { title: "หุ่นดี สุขภาพดี", priority: "keep", status: "active", kept: 12, stage: 2, stageName: "ต้นกล้า", tasks: [r("วางแผนมื้อให้ใกล้ 1,650–1,750 kcal และโปรตีน 90–110 กรัม", 10, [0, 1, 2, 3, 4, 5, 6], null, 0), r("เตรียมตัวเข้านอนและค่อยๆ เลื่อนเวลาไป 23:30", 10, [0, 1, 2, 3, 4, 5, 6], null, 4), r("พิลาทิสเสริม", 45, null, 1, 0), { title: "ทบทวนผลทดลองอาหาร", status: "todo", due: ahead(20) }] },
       { title: "นั่งสมาธิวันละ 10 นาที", priority: "main", status: "done", kept: 70, stage: 5, stageName: "สำเร็จแล้ว", tasks: t(14, 14) },
       { title: "เลือกทริปปลายปีและจองทัวร์", priority: "project", status: "paused", kept: 0, stage: 0, stageName: "เมล็ด", deadline: ahead(62), tasks: [{ title: "🧳 สำรวจจุดหมายและช่วงวันที่สะดวก", status: "todo" }] },
