@@ -24,7 +24,19 @@
   .stat span { font-size: 12px; color: var(--muted); }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 14px; }
   .tabs { display: flex; gap: 6px; margin: 0 0 12px; }
-  .tab { flex: 1; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 8px 6px; font: inherit; font-size: 14px; color: var(--muted); }
+  .tab { flex: 1; min-width: 0; border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 8px 4px; font: inherit; font-size: 13.5px; color: var(--muted); white-space: nowrap; }
+  .nsearch { width: 100%; box-sizing: border-box; border: 1px solid var(--line); border-radius: 10px; padding: 9px 12px; font: inherit; font-size: 14px; background: var(--bg); color: var(--ink); margin-bottom: 10px; }
+  .ngrp { border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+  .ngrp > summary { list-style: none; cursor: pointer; padding: 10px 12px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+  .ngrp > summary::-webkit-details-marker { display: none; }
+  .ngrp > summary .cnt { color: var(--muted); font-weight: 400; font-size: 13px; }
+  .nitem { padding: 10px 12px; border-top: 1px solid var(--line); }
+  .nitem .nt { font-weight: 600; font-size: 14.5px; line-height: 1.45; }
+  .nitem .ns { white-space: pre-line; font-size: 13.5px; line-height: 1.6; margin: 4px 0 0; color: var(--ink); }
+  .nitem .nm { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+  .nitem .nm a { color: var(--leaf); text-decoration: none; overflow-wrap: anywhere; }
+  .nitem .nm button { border: 0; background: none; padding: 0; font: inherit; color: var(--muted); cursor: pointer; text-decoration: underline; }
+  .nitem .nm button.danger { color: #c0563f; }
   .tab[aria-selected="true"] { background: var(--leaf); border-color: var(--leaf); color: #fff; font-weight: 500; }
   .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
   .chip { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 13px; color: var(--muted); }
@@ -112,7 +124,8 @@
   .tmore { flex: none; border: 0; background: none; font: inherit; font-size: 13px; color: var(--leaf); padding: 4px 2px; cursor: pointer; }
   .tgrp { font-size: 12px; font-weight: 700; color: var(--muted); margin: 14px 0 0; }
   .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: flex; align-items: flex-end; z-index: 10; }
-  .sheet { background: var(--card); width: 100%; max-width: 480px; margin: 0 auto; border-radius: 18px 18px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); }
+  .sheet { background: var(--card); width: 100%; max-width: 480px; margin: 0 auto; border-radius: 18px 18px 0 0; padding: 16px 16px calc(16px + env(safe-area-inset-bottom)); max-height: 80vh; overflow-y: auto; box-sizing: border-box; }
+  .sheet input[type=text] { display: block; width: 100%; box-sizing: border-box; margin-top: 6px; border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: inherit; }
   .sheet h4 { margin: 0 0 4px; font-size: 15px; } .sheet p { margin: 0 0 12px; font-size: 13px; color: var(--muted); }
   .sheet button, .sheet label.btn { display: block; width: 100%; text-align: left; border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 8px; font: inherit; font-size: 15px; color: var(--ink); cursor: pointer; }
   .sheet input[type=date] { font: inherit; font-size: 15px; border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; margin-left: 6px; }
@@ -135,6 +148,7 @@
       <button class="tab" role="tab" data-tab="today" aria-selected="false">วันนี้</button>
       <button class="tab" role="tab" data-tab="garden" aria-selected="true">สวน</button>
       <button class="tab" role="tab" data-tab="goals" aria-selected="false">เป้าหมาย</button>
+      <button class="tab" role="tab" data-tab="notes" aria-selected="false">โน้ต</button>
       <button class="tab" role="tab" data-tab="streak" aria-selected="false">ต่อเนื่อง</button>
     </div>
     <section class="card" data-panel="today" hidden>
@@ -150,6 +164,11 @@
       <div class="sum" id="goal-sum"></div>
       <div id="goal-cards"></div>
       <p class="note"><span class="when due">ส่ง 19 พ.ย.</span> กำหนดส่งจริง · <span class="when est">≈ พ 4 พ.ย.</span> วันที่คิมจัดให้ทำ (ตามเวลาว่าง)</p>
+    </section>
+    <section class="card" data-panel="notes" hidden>
+      <input id="note-q" class="nsearch" type="search" placeholder="ค้นโน้ต…" aria-label="ค้นโน้ต">
+      <div id="note-list"></div>
+      <p class="note">จดเพิ่ม: พิมพ์ "จดโน้ต …" หรือ "ไอเดีย …" ในแชท ส่งลิงก์ หรือส่งรูป คิมสรุปและจัดหมวดให้</p>
     </section>
     <section class="card" data-panel="streak" hidden>
       <svg id="streak" viewBox="0 0 360 206" role="img" aria-label="แผนที่ความต่อเนื่อง 12 สัปดาห์"></svg>
@@ -169,7 +188,7 @@
 // LIFF ID ไม่ต้องใส่แล้ว: หน้าสวนถามจาก garden-data เอง (ใช้ Secret LIFF_ID ใน Supabase) · ใส่ตรงนี้ก็ได้ถ้าอยากบังคับ
 let LIFF_ID = "";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v18";
+const VERSION = "v19";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -418,6 +437,72 @@ function render(data, name) {
   drawGarden(data.goals);
   drawGoals(data);
   drawStreak(data.days, data.today);
+  NOTES = data.notes || []; GOAL_ORDER = (data.goals || []).map((g) => g.title);
+  drawNotes();
+}
+
+// ===== แท็บโน้ต: จัดกลุ่มตามหมวด (หมวดที่เป็นเป้ามาก่อน) ค้นได้ ลบ/ย้ายหมวดได้ =====
+let NOTES = [], GOAL_ORDER = [];
+const NOTE_ICON = { idea: "💡", link: "🔗", image: "🖼", note: "📝" };
+function drawNotes() {
+  const box = document.getElementById("note-list"); if (!box) return;
+  const q = (document.getElementById("note-q").value || "").trim().toLowerCase();
+  const list = NOTES.filter((n) => !q || `${n.title} ${n.summary || ""} ${n.category}`.toLowerCase().includes(q));
+  if (!NOTES.length) { box.innerHTML = '<p class="hint">ยังไม่มีโน้ต · ในแชทพิมพ์ "จดโน้ต …" "ไอเดีย …" หรือส่งลิงก์/รูปมาได้เลย</p>'; return; }
+  if (!list.length) { box.innerHTML = `<p class="hint">ไม่เจอโน้ตที่มีคำว่า "${escapeHtml(q)}"</p>`; return; }
+  const groups = new Map();
+  for (const n of list) { if (!groups.has(n.category)) groups.set(n.category, []); groups.get(n.category).push(n); }
+  const rank = (c) => { const i = GOAL_ORDER.indexOf(c); return i < 0 ? 1000 - groups.get(c).length / 1000 : i; };
+  const cats = [...groups.keys()].sort((a, b) => rank(a) - rank(b) || a.localeCompare(b, "th"));
+  const item = (n) => `<div class="nitem" data-nid="${n.id}">
+      <div class="nt">${NOTE_ICON[n.kind] || "📝"} ${escapeHtml(n.title)}</div>
+      ${n.summary ? `<p class="ns">${escapeHtml(n.summary)}</p>` : ""}
+      <div class="nm"><span>${thDate(String(n.created_at).slice(0, 10))}</span>
+        ${n.source_url ? `<a href="${escapeHtml(n.source_url)}" data-ext="1">เปิดลิงก์ ↗</a>` : ""}
+        <button data-move="${n.id}">ย้ายหมวด</button><button class="danger" data-del="${n.id}">ลบ</button></div></div>`;
+  box.innerHTML = cats.map((c, i) => `<details class="ngrp" ${i === 0 || q ? "open" : ""}><summary>${GOAL_ORDER.includes(c) ? "🎯 " : ""}${escapeHtml(c)} <span class="cnt">${groups.get(c).length}</span></summary>${groups.get(c).map(item).join("")}</details>`).join("");
+}
+document.addEventListener("input", (e) => { if (e.target.id === "note-q") drawNotes(); });
+document.addEventListener("click", (e) => {
+  const ext = e.target.closest("a[data-ext]");
+  if (ext && window.liff?.isInClient?.()) { e.preventDefault(); liff.openWindow({ url: ext.href, external: true }); return; }
+  const del = e.target.closest("[data-del]");
+  if (del) {
+    if (del.dataset.armed !== "1") { del.dataset.armed = "1"; del.textContent = "กดอีกครั้งเพื่อลบ"; return; }
+    const id = Number(del.dataset.del);
+    NOTES = NOTES.filter((n) => n.id !== id); drawNotes();
+    return noteAct(`a=note_del&n=${id}`);
+  }
+  const mv = e.target.closest("[data-move]");
+  if (mv) moveSheet(Number(mv.dataset.move));
+});
+function moveSheet(id) {
+  const n = NOTES.find((x) => x.id === id); if (!n) return;
+  const cats = [...new Set([...GOAL_ORDER, ...NOTES.map((x) => x.category)])].filter((c) => c !== n.category);
+  const bg = document.createElement("div"); bg.className = "sheet-bg";
+  bg.innerHTML = `<div class="sheet"><h4>ย้าย "${escapeHtml(n.title)}"</h4><p>ไปหมวดไหนดี?</p>
+    ${cats.map((c) => `<button data-cat="${escapeHtml(c)}">${GOAL_ORDER.includes(c) ? "🎯 " : ""}${escapeHtml(c)}</button>`).join("")}
+    <label class="btn">หมวดใหม่ <input type="text" maxlength="40" placeholder="พิมพ์ชื่อหมวด"></label><button data-cat="__new">ย้ายไปหมวดใหม่</button>
+    <button data-cat="">ยกเลิก</button></div>`;
+  document.body.appendChild(bg);
+  bg.onclick = (e) => {
+    if (e.target === bg) return bg.remove();
+    const b = e.target.closest("button[data-cat]"); if (!b) return;
+    let c = b.dataset.cat; if (c === "__new") c = (bg.querySelector("input[type=text]").value || "").trim();
+    bg.remove(); if (!c) return;
+    n.category = c; n.goal_id = null; drawNotes();
+    noteAct(`a=note_cat&n=${id}&c=${encodeURIComponent(c)}`);
+  };
+}
+async function noteAct(data) {
+  if (DEMO) return toast("(ตัวอย่าง) " + decodeURIComponent(data));
+  try {
+    const r = await fetch(FUNCTION_URL, { method: "POST", headers: { "x-line-id-token": ID_TOKEN, "content-type": "application/json" }, body: JSON.stringify({ data }) });
+    if (r.status === 401 && relogin()) return;
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || r.status);
+    toast(j.note);
+  } catch (e) { toast("ทำไม่สำเร็จ ลองเปิดหน้านี้ใหม่นะ"); }
 }
 
 function openTab(name) {
@@ -584,7 +669,11 @@ function demoData() {
   const r = (title, minutes, days, per_week, weekDone) => ({ title, status: "routine", minutes, days, per_week, weekDone, weekTarget: days?.length || per_week });
   const ahead = (n) => new Date(Date.parse(today) + n * 864e5).toISOString().slice(0, 10);
   return {
-    today, days, errands: { todo: [{ title: "ส่งงานกลุ่ม MBA", due: ahead(2) }, { title: "จ่ายค่าบัตร", due: ahead(-1) }], done: 7 },
+    today, days, notes: [
+      { id: 1, goal_id: 1, category: "IELTS 7", kind: "link", title: "เทคนิค Reading True/False/Not Given", summary: "• อ่านคำถามก่อน ขีดคีย์เวิร์ด\n• Not Given = ในบทความไม่พูดถึงเลย\n• อย่าใช้ความรู้รอบตัวตอบ", source_url: "https://example.com/ielts-reading", created_at: today },
+      { id: 2, goal_id: null, category: "ไอเดียธุรกิจ", kind: "idea", title: "กล่องสุ่มขนมสุนัขรายเดือน", summary: "• ส่งเดือนละครั้ง 3 รสชาติ\n• ทดลองกับลูกค้า PAWERY เดิมก่อน", source_url: null, created_at: today },
+      { id: 3, goal_id: null, category: "อาหาร", kind: "image", title: "สูตรอกไก่อบสมุนไพร", summary: "• อกไก่ 200 g · โปรตีน ~46 g\n• อบ 200°C 20 นาที", source_url: null, created_at: today },
+    ], errands: { todo: [{ title: "ส่งงานกลุ่ม MBA", due: ahead(2) }, { title: "จ่ายค่าบัตร", due: ahead(-1) }], done: 7 },
     stats: { jarMonth: 540, jarTotal: 1380, keptMonth: 18, promisedMonth: 22, keptTotal: 40 },
     goals: [
       { title: "สอบ IELTS ให้ได้ 7", priority: "main", status: "active", kept: 40, stage: 3, stageName: "พุ่มไม้", deadline: ahead(138), tasks: [
@@ -620,7 +709,7 @@ function demoData() {
     if (!res.ok) return showState(`เปิดสวนไม่สำเร็จ (ข้อมูลตอบกลับ ${res.status}: ${(await res.text()).slice(0, 120)})`);
     render(await res.json(), profile?.displayName ?? "");
     const want = new URLSearchParams(location.search).get("tab") || (new URLSearchParams(location.search).get("liff.state") || "").match(/tab=(\w+)/)?.[1];
-    openTab(want === "today" || want === "goals" || want === "streak" ? want : "today");
+    openTab(["today", "goals", "streak", "notes", "garden"].includes(want) ? want : "today");
   } catch (e) {
     const msg = e?.message || String(e);
     const hint = /liff|LIFF/.test(msg) ? "ตรวจ LIFF ID" : /fetch|network|Load failed/i.test(msg) ? "เรียก Supabase ไม่ได้: ตรวจว่าปิด JWT ของ garden-data แล้ว" : "";
