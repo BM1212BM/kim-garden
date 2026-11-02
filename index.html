@@ -206,7 +206,7 @@
 // LIFF ID ไม่ต้องใส่แล้ว: หน้าสวนถามจาก garden-data เอง (ใช้ Secret LIFF_ID ใน Supabase) · ใส่ตรงนี้ก็ได้ถ้าอยากบังคับ
 let LIFF_ID = "";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v21";
+const VERSION = "v22";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -499,7 +499,41 @@ function openSheet(html) {
 }
 function findTask(id) {
   for (const g of GDATA?.goals || []) { const t = g.tasks.find((x) => String(x.id) === String(id)); if (t) return { g, t }; }
-  return null;
+  const e = (GDATA?.errands?.todo || []).find((x) => String(x.id) === String(id)) || (DAYS?.days?.[0]?.errands || []).find((x) => String(x.id) === String(id));
+  return e ? { g: null, t: { ...e, errand: true } } : null;
+}
+function errandSheet(t) {
+  const reps = [[0, "ไม่ซ้ำ"], [7, "ทุกสัปดาห์"], [14, "ทุก 2 สัปดาห์"], [30, "ทุกเดือน"], [90, "ทุก 3 เดือน"], [365, "ทุกปี"]];
+  if (t.repeat && !reps.some(([d]) => d === t.repeat)) reps.push([t.repeat, `ทุก ${t.repeat} วัน`]);
+  const today = GDATA?.today || DAYS?.today || "";
+  const bg = openSheet(`<h4>แก้งานทั่วไป</h4>
+    <label class="fl">ชื่อ<input type="text" name="title" maxlength="120" value="${escapeHtml(t.title)}"></label>
+    <label class="fl">ต้องทำวันไหน (ไม่ใส่ = ไม่มีกำหนด)<input type="date" name="due" value="${t.due || ""}" min="${today}"></label>
+    <label class="fl">ทำซ้ำ<select name="rep">${reps.map(([d, l]) => `<option value="${d}" ${(t.repeat || 0) === d ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+    <button class="primary" data-save>บันทึก</button>
+    <button class="danger" data-del>ลบงานนี้</button>
+    <button data-x>ยกเลิก</button>`);
+  const sh = bg.querySelector(".sheet");
+  const send = async (data, btn, busy) => {
+    const old = btn.textContent; btn.disabled = true; btn.textContent = busy;
+    try { const j = await goalAct(data); if (!j) return; bg.remove(); toast(j.note); await reloadGarden(); if (DAYS) { DAYS = null; loadDays(); } }
+    catch (_) { btn.disabled = false; btn.textContent = old; toast("ทำไม่สำเร็จ ลองอีกครั้งนะ"); }
+  };
+  sh.addEventListener("click", (e) => {
+    const del = e.target.closest("[data-del]");
+    if (del) {
+      if (del.dataset.armed !== "1") { del.dataset.armed = "1"; del.textContent = "กดอีกครั้งเพื่อยืนยันลบ"; return; }
+      return send(`a=task_del&t=${t.id}`, del, "กำลังลบ…");
+    }
+    const sv = e.target.closest("[data-save]"); if (!sv) return;
+    const q = new URLSearchParams({ a: "task_edit", t: t.id });
+    const title = sh.querySelector("[name=title]").value.trim(), due = sh.querySelector("[name=due]").value, rep = Number(sh.querySelector("[name=rep]").value);
+    if (title && title !== t.title) q.set("title", title);
+    if (due !== (t.due || "")) q.set("due", due || "none");
+    if (rep !== (t.repeat || 0)) q.set("rep", rep);
+    if ([...q.keys()].length <= 2) { bg.remove(); return; }
+    send(q.toString(), sv, "กำลังบันทึก…");
+  });
 }
 function editSheet(g, t) {
   const routine = t.status === "routine";
@@ -557,7 +591,7 @@ function editSheet(g, t) {
 document.addEventListener("click", (e) => {
   const el = e.target.closest("[data-edit]"); if (!el) return;
   const f = findTask(el.dataset.edit); if (!f) return;
-  e.preventDefault(); editSheet(f.g, f.t);
+  e.preventDefault(); f.t.errand ? errandSheet(f.t) : editSheet(f.g, f.t);
 });
 function addSheet(g) {
   const bg = openSheet(`<h4>เพิ่มงานใน "${escapeHtml(g.title)}"</h4><p>พิมพ์บรรทัดละ 1 งาน ใส่หลายงานพร้อมกันได้ เพิ่มเสร็จค่อยกด "ให้คิมช่วยดู" ก็ได้</p>
@@ -777,7 +811,7 @@ function drawDays() {
     return `<div class="trow ${done ? "done" : none ? "none" : ""}">${hasTime ? `<span class="ttime">${x.at || ""}</span>` : ""}${chk}<div class="tbody"><div class="ttitle">${x.icon ? x.icon + " " : ""}${escapeHtml(x.title)}</div><div class="tmeta">${meta}</div></div>${more}</div>`;
   };
   const hasTime = d.items.some((x) => x.at) || d.ext.some((x) => x.at);
-  const errRow = (e) => `<div class="trow">${hasTime ? '<span class="ttime"></span>' : ""}<button class="tchk" data-act="a=errand_done&t=${e.id}&back=plan" aria-label="ทำเสร็จ"></button><div class="tbody"><div class="ttitle">📌 ${escapeHtml(e.title)}</div><div class="tmeta">งานทั่วไป${e.due && e.due < DAYS.today ? ` · <span class="warn">ค้างตั้งแต่ ${thDate(e.due)}</span>` : ""}</div></div></div>`;
+  const errRow = (e) => `<div class="trow">${hasTime ? '<span class="ttime"></span>' : ""}<button class="tchk" data-act="a=errand_done&t=${e.id}&back=plan" aria-label="ทำเสร็จ"></button><div class="tbody editable" data-edit="${e.id}"><div class="ttitle">📌 ${escapeHtml(e.title)}</div><div class="tmeta">งานทั่วไป${e.repeat ? " · 🔁" : ""}${e.due && e.due < DAYS.today ? ` · <span class="warn">ค้างตั้งแต่ ${thDate(e.due)}</span>` : ""}</div></div><button class="tmore" data-edit="${e.id}">แก้</button></div>`;
   const extRow = (e) => `<div class="trow">${hasTime ? `<span class="ttime">${e.at || ""}</span>` : ""}<button class="tchk" data-act="a=ext&r=done&e=${encodeURIComponent(e.id)}" aria-label="ทำแล้ว"></button><div class="tbody"><div class="ttitle">${escapeHtml(e.title)}</div><div class="tmeta">${escapeHtml(e.cal || "")}${e.at ? ` · ${fmtM(e.minutes)}` : " · ทั้งวัน"}</div></div><button class="tmore" data-act="a=ext&r=skip&e=${encodeURIComponent(e.id)}">ข้าม</button></div>`;
   const en = DAYS.energy;
   const energyHtml = today ? `<div class="energy">พลังงานวันนี้ ${[["light", "🌿 เบาๆ"], ["normal", "🙂 ปกติ"], ["full", "⚡ เต็มที่"]].map(([k, l]) => `<button data-act="a=energy&v=${k}" aria-pressed="${en === k}">${l}</button>`).join("")}</div>` : "";
@@ -848,7 +882,7 @@ function demoData() {
       { id: 1, goal_id: 1, category: "IELTS 7", kind: "link", title: "เทคนิค Reading True/False/Not Given", summary: "• อ่านคำถามก่อน ขีดคีย์เวิร์ด\n• Not Given = ในบทความไม่พูดถึงเลย\n• อย่าใช้ความรู้รอบตัวตอบ", source_url: "https://example.com/ielts-reading", created_at: today },
       { id: 2, goal_id: null, category: "ไอเดียธุรกิจ", kind: "idea", title: "กล่องสุ่มขนมสุนัขรายเดือน", summary: "• ส่งเดือนละครั้ง 3 รสชาติ\n• ทดลองกับลูกค้า PAWERY เดิมก่อน", source_url: null, created_at: today },
       { id: 3, goal_id: null, category: "อาหาร", kind: "image", title: "สูตรอกไก่อบสมุนไพร", summary: "• อกไก่ 200 g · โปรตีน ~46 g\n• อบ 200°C 20 นาที", source_url: null, created_at: today },
-    ], errands: { todo: [{ title: "ส่งงานกลุ่ม MBA", due: ahead(2) }, { title: "จ่ายค่าบัตร", due: ahead(-1) }], done: 7 },
+    ], errands: { todo: [{ id: 901, title: "ส่งงานกลุ่ม MBA", due: ahead(2) }, { id: 902, title: "จ่ายค่าบัตร", due: ahead(-1), repeat: 30 }], done: 7 },
     stats: { jarMonth: 540, jarTotal: 1380, keptMonth: 18, promisedMonth: 22, keptTotal: 40 },
     goals: [
       { title: "สอบ IELTS ให้ได้ 7", priority: "main", status: "active", kept: 40, stage: 3, stageName: "พุ่มไม้", deadline: ahead(138), tasks: [
