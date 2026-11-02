@@ -169,7 +169,7 @@
 // LIFF ID ไม่ต้องใส่แล้ว: หน้าสวนถามจาก garden-data เอง (ใช้ Secret LIFF_ID ใน Supabase) · ใส่ตรงนี้ก็ได้ถ้าอยากบังคับ
 let LIFF_ID = "";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v17";
+const VERSION = "v18";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -457,18 +457,41 @@ async function loadDays() {
   } catch (e) { document.getElementById("dayview").innerHTML = `<p class="hint">โหลดแผนไม่สำเร็จ (${escapeHtml(String(e.message || e))}) · ตรวจว่า deploy garden-data และ line-webhook ตัวล่าสุดแล้ว</p>`; }
 }
 
+// ติ๊ก/เลื่อนแล้วขึ้นทันที (ไม่รอเซิร์ฟเวอร์) แล้วค่อยโหลดแผนจริงมาเทียบเงียบๆ เมื่อคำขอทุกอันเสร็จ
+let PENDING = 0;
+function optimistic(data) {
+  const q = new URLSearchParams(data), a = q.get("a"), d = DAYS?.days?.[0];
+  if (!d) return;
+  const pid = Number(q.get("p"));
+  if (a === "pdone") d.items.forEach((x) => { if (x.pid === pid) x.result = "full"; });
+  else if (a === "pundo") d.items.forEach((x) => { if (x.pid === pid) x.result = null; });
+  else if (a === "pmove") d.items = d.items.filter((x) => x.pid !== pid);
+  else if (a === "errand_done") d.errands = d.errands.filter((e) => String(e.id) !== q.get("t"));
+  else if (a === "ext") d.ext = d.ext.filter((e) => e.id !== q.get("e"));
+  else if (a === "energy") DAYS.energy = q.get("v");
+  else return;
+  drawDays();
+}
 async function act(data) {
-  if (BUSY) return; BUSY = true;
-  document.querySelectorAll("#dayview button").forEach((b) => (b.disabled = true));
+  const slow = /^a=(energy|replan|lighten)/.test(data);   // พวกนี้จัดแผนใหม่ทั้งวัน ต้องรอผล
+  if (slow && BUSY) return;
+  if (DEMO) { optimistic(data); toast("(ตัวอย่าง) " + data); return; }
+  optimistic(data);
+  PENDING++;
+  if (slow) { BUSY = true; document.querySelectorAll("#dayview button").forEach((b) => (b.disabled = true)); }
+  let failed = false;
   try {
-    if (DEMO) { toast("(ตัวอย่าง) " + data); return; }
     const r = await fetch(FUNCTION_URL, { method: "POST", headers: { "x-line-id-token": ID_TOKEN, "content-type": "application/json" }, body: JSON.stringify({ data }) });
     if (r.status === 401 && relogin()) return;
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || r.status);
-    toast(j.note);
-    await loadDays();
-  } catch (e) { toast("ทำไม่สำเร็จ ลองอีกครั้งนะ"); } finally { BUSY = false; document.querySelectorAll("#dayview button").forEach((b) => (b.disabled = false)); }
+    if (slow || !/^a=(pdone|pundo)/.test(data)) toast(j.note);
+  } catch (e) { failed = true; toast("ทำไม่สำเร็จ ลองอีกครั้งนะ"); }
+  finally {
+    PENDING--;
+    if (slow) { BUSY = false; }
+    if (PENDING === 0 || failed) await loadDays();
+  }
 }
 
 function drawDays() {
