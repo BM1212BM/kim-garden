@@ -265,7 +265,7 @@
 // LIFF ID ไม่ต้องใส่แล้ว: หน้าสวนถามจาก garden-data เอง (ใช้ Secret LIFF_ID ใน Supabase) · ใส่ตรงนี้ก็ได้ถ้าอยากบังคับ
 let LIFF_ID = "";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v24";
+const VERSION = "v25";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -1062,7 +1062,7 @@ async function settingsSheet() {
   const sh = bg.querySelector(".sheet");
   let S;
   try {
-    if (DEMO) S = { about: { job: "วิศวกรเครื่องยนต์เรือ", hours: "จ–ศ 8:00–17:00", mbti: "INTJ" }, lang: LANG, morning: "09:00", free: [240, 90, 90, 120, 90, 120, 300], rest: [], planRem: null, routines: [{ id: 1, title: "ท่องศัพท์", goal: "IELTS 7", days: [1, 3, 5], remind: "20:00" }, { id: 2, title: "บันทึกรายรับรายจ่าย", goal: "Money", days: [0], remind: null }] };
+    if (DEMO) S = { about: { job: "วิศวกรเครื่องยนต์เรือ", hours: "จ–ศ 8:00–17:00", mbti: "INTJ", tone: "direct", plan: "flex" }, lang: LANG, morning: "09:00", free: [240, 90, 90, 120, 90, 120, 300], rest: [], planRem: null, routines: [{ id: 1, title: "ท่องศัพท์", goal: "IELTS 7", days: [1, 3, 5], remind: "20:00" }, { id: 2, title: "บันทึกรายรับรายจ่าย", goal: "Money", days: [0], remind: null }] };
     else { const r = await fetch(`${FUNCTION_URL}?settings=1`, { headers: { "x-line-id-token": ID_TOKEN } }); if (r.status === 401 && relogin()) return; S = await r.json(); if (!r.ok) throw new Error(S.error); }
   } catch (_) { sh.innerHTML = `<h4>⚙️ ตั้งค่า</h4><p>โหลดไม่สำเร็จ ลองใหม่อีกครั้งนะ</p><button data-x>ปิด</button>`; return; }
   const hrsL = [0, 30, 60, 90, 120, 150, 180, 240, 300, 360, 420, 480, 600];
@@ -1082,6 +1082,11 @@ async function settingsSheet() {
       <label class="fl">อะไรช่วยพักใจ<input type="text" data-ab="fun" maxlength="200" placeholder="เช่น เดินเล่น ดูซีรีส์ เล่นกับแมว" value="${escapeHtml(A.fun || "")}"></label>
       <label class="fl">MBTI (ถ้ารู้)<input type="text" data-ab="mbti" maxlength="10" placeholder="เช่น INFJ" value="${escapeHtml(A.mbti || "")}"></label>
       <p>${L("ยังไม่รู้?", "Don't know?")} <a href="https://www.16personalities.com/free-personality-test" data-ext="1">${L("ทำแบบทดสอบฟรี (~10 นาที) ↗", "Take the free test (~10 min) ↗")}</a> ${L("แล้วกลับมาใส่ผล", "then enter your result")}</p>
+      <p class="sh" style="margin-top:6px">${L("อยากให้คิมคุยแบบไหน", "How should Kim talk to you?")}</p>
+      <label class="fl">${L("น้ำเสียง", "Tone")}<select data-ab="tone"><option value="">${L("ไม่ระบุ", "No preference")}</option><option value="direct" ${A.tone === "direct" ? "selected" : ""}>${L("ตรงๆ กระชับ", "Direct")}</option><option value="gentle" ${A.tone === "gentle" ? "selected" : ""}>${L("นุ่มนวล ค่อยๆ เสนอ", "Gentle")}</option></select></label>
+      <label class="fl">${L("ความยาวคำตอบ", "Reply length")}<select data-ab="len"><option value="">${L("ไม่ระบุ", "No preference")}</option><option value="short" ${A.len === "short" ? "selected" : ""}>${L("สั้นๆ", "Short")}</option><option value="detail" ${A.len === "detail" ? "selected" : ""}>${L("ละเอียด มีเหตุผล", "Detailed")}</option></select></label>
+      <label class="fl">${L("แผน", "Plans")}<select data-ab="plan"><option value="">${L("ไม่ระบุ", "No preference")}</option><option value="fixed" ${A.plan === "fixed" ? "selected" : ""}>${L("แน่นอน ไม่เปลี่ยนบ่อย", "Fixed, few changes")}</option><option value="flex" ${A.plan === "flex" ? "selected" : ""}>${L("ยืดหยุ่น มีตัวเลือก", "Flexible, give options")}</option></select></label>
+      <label class="fl">${L("การทักเตือน", "Nudges")}<select data-ab="nudge"><option value="">${L("ไม่ระบุ", "No preference")}</option><option value="more" ${A.nudge === "more" ? "selected" : ""}>${L("ทักตามได้ ช่วยกระตุ้น", "Follow up, push me")}</option><option value="less" ${A.nudge === "less" ? "selected" : ""}>${L("ทักเท่าที่จำเป็น ไม่ตามซ้ำ", "Only when needed")}</option></select></label>
       <label class="fl">อื่นๆ ที่อยากให้คิมรู้<textarea data-ab="other" rows="2" maxlength="400">${escapeHtml(A.other || "")}</textarea></label>
       <label class="frow wide"><span>ให้คิมช่วยจัดงานจากงานประจำด้วย<small>${L('เพิ่มเป้า "งานประจำ" ไว้ใส่งานที่ต่อจากที่ทำงาน · ปิดได้ถ้ามีระบบงานแยกอยู่แล้ว', 'Adds a "Day job" goal for work tasks · leave off if you use another system')}</small></span><input type="checkbox" data-ab="workmode" ${A.workmode ? "checked" : ""}></label>
     </div>
