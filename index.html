@@ -196,6 +196,7 @@
   .ov-top select { border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; font: inherit; background: var(--card); color: var(--ink); }
   .kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
   .kpi { background: var(--bg); border-radius: 12px; padding: 10px 12px; }
+  .kpi .vs { display: block; font-style: normal; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
   .kpi b { display: block; font-size: 22px; line-height: 1.2; } .kpi span { font-size: 12px; color: var(--muted); }
   .ov-h { font-size: 14px; font-weight: 700; margin: 18px 0 6px; }
   .hbar { display: grid; grid-template-columns: minmax(0, 1fr) 2fr auto; align-items: center; gap: 8px; font-size: 13px; padding: 4px 0; }
@@ -221,6 +222,18 @@
   .nact { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .nact button { border: 1px solid var(--line); background: var(--card); border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 12.5px; cursor: pointer; color: var(--ink); }
   .nact button.go { border-color: var(--leaf); color: var(--leaf); }
+  .tchip.plain { background: var(--bg); color: var(--ink); border: 1px solid var(--line); font-weight: 600; }
+  .glegend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+  .glegend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 4px; vertical-align: -1px; }
+  .tnote { font-size: 12.5px; color: var(--muted); margin-top: 3px; white-space: pre-line; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .tbody[data-row] { cursor: pointer; }
+  .ord { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-left: 4px solid var(--tc); border-radius: 0 10px 10px 0; padding: 8px 8px 8px 10px; margin: 6px 0; background: var(--card); }
+  .ord .ot { flex: 1; min-width: 0; font-size: 14px; }
+  .ord .ot small { display: block; color: var(--muted); font-size: 12px; }
+  .ord button { flex: none; width: 36px; height: 34px; border: 1px solid var(--line); background: var(--card); border-radius: 10px; font: inherit; cursor: pointer; color: var(--ink); }
+  .ord button:disabled { opacity: .3; }
+  .ordbar { display: flex; gap: 8px; margin: 10px 0; } .ordbar button { flex: 1; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 12px; padding: 11px; font: inherit; font-size: 14px; cursor: pointer; } .ordbar button.primary { background: var(--leaf); border-color: var(--leaf); color: #fff; font-weight: 600; }
+  .nadd { width: 100%; margin: 0 0 10px; border: 1px dashed var(--leaf); color: var(--leaf); background: none; border-radius: 12px; padding: 9px; font: inherit; font-size: 14px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -251,9 +264,10 @@
       <p class="note"><span class="when due">ส่ง 19 พ.ย.</span> กำหนดส่งจริง · <span class="when est">≈ พ 4 พ.ย.</span> วันที่คิมจัดให้ทำ (ตามเวลาว่าง)</p>
     </section>
     <section class="card" data-panel="notes" hidden>
+      <button class="nadd" id="note-add">+ เขียนโน้ตเอง</button>
       <input id="note-q" class="nsearch" type="search" placeholder="ค้นโน้ต…" aria-label="ค้นโน้ต">
       <div id="note-list"></div>
-      <p class="note">จดเพิ่ม: พิมพ์ "จดโน้ต …" หรือ "ไอเดีย …" ในแชท ส่งลิงก์ หรือส่งรูป คิมสรุปและจัดหมวดให้</p>
+      <p class="note">เขียนเองได้ด้วยปุ่มด้านบน · หรือพิมพ์ "จดโน้ต …" ในแชท ส่งลิงก์ หรือส่งรูป คิมสรุปและจัดหมวดให้</p>
     </section>
     <section class="card" data-panel="overview" hidden>
       <div id="ov"><p class="note">กำลังโหลด…</p></div>
@@ -265,7 +279,7 @@
 // LIFF ID ไม่ต้องใส่แล้ว: หน้าสวนถามจาก garden-data เอง (ใช้ Secret LIFF_ID ใน Supabase) · ใส่ตรงนี้ก็ได้ถ้าอยากบังคับ
 let LIFF_ID = "";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v25";
+const VERSION = "v27";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -426,7 +440,7 @@ const whenTag = (t, today) => t.status === "done" ? (t.done_on ? ` <span class="
   : t.fixed ? ` <span class="when due">📌 ${t.fixed.day === today ? "วันนี้" : `${DAY[new Date(t.fixed.day + "T00:00:00Z").getUTCDay()]} ${thDate(t.fixed.day)}`} ${t.fixed.at}${t.minutes > 5 ? `–${(() => { const m = Number(t.fixed.at.slice(0, 2)) * 60 + Number(t.fixed.at.slice(3)) + t.minutes; return `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`; })()}` : ""}</span>`
   : (t.est ? ` <span class="when est">≈ ${t.est === today ? "วันนี้" : `${DAY[new Date(t.est + "T00:00:00Z").getUTCDay()]} ${thDate(t.est)}`}</span>` : "")
   + (t.due ? ` <span class="when ${t.due < today ? "late" : "due"}">${t.due < today ? "เลยกำหนด" : "ส่ง"} ${thDate(t.due)}</span>` : "");
-const taskLi = (t, today) => `<li class="${t.status === "done" ? "done" : ""}${t.id && t.status === "todo" ? " editable" : ""}"${t.id && t.status === "todo" ? ` data-edit="${t.id}"` : ""}><span class="mk"></span><span class="t">${escapeHtml(t.title.replace(/^🧳 /, "🧳 "))}${t.status === "todo" ? badges(t) : ""}${whenTag(t, today)}</span>${t.id && t.status === "todo" ? '<span class="ed">แก้</span>' : ""}</li>`;
+const taskLi = (t, today) => `<li class="${t.status === "done" ? "done" : ""}${t.id && t.status === "todo" ? " editable" : ""}"${t.id && t.status === "todo" ? ` data-edit="${t.id}"` : ""}><span class="mk"></span><span class="t">${escapeHtml(t.title.replace(/^🧳 /, "🧳 "))}${t.status === "todo" ? badges(t) : ""}${t.note ? " 📝" : ""}${whenTag(t, today)}</span>${t.id && t.status === "todo" ? '<span class="ed">แก้</span>' : ""}</li>`;
 
 function goalCard(g, today, open) {
   const rk = roleKey(g);
@@ -576,6 +590,7 @@ function errandSheet(t) {
     <label class="fl">ชื่อ<input type="text" name="title" maxlength="120" value="${escapeHtml(t.title)}"></label>
     <label class="fl">ต้องทำวันไหน (ไม่ใส่ = ไม่มีกำหนด)<input type="date" name="due" value="${t.due || ""}" min="${today}"></label>
     <label class="fl">ทำซ้ำ<select name="rep">${reps.map(([d, l]) => `<option value="${d}" ${(t.repeat || 0) === d ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+    <label class="fl">📝 โน้ต / รายละเอียด<textarea name="note" rows="4" maxlength="4000" placeholder="รายละเอียด ของที่ต้องเตรียม ลิงก์ ฯลฯ">${escapeHtml(t.note || "")}</textarea></label>
     <button class="primary" data-save>บันทึก</button>
     <button class="danger" data-del>ลบงานนี้</button>
     <button data-x>ยกเลิก</button>`);
@@ -597,6 +612,7 @@ function errandSheet(t) {
     if (title && title !== t.title) q.set("title", title);
     if (due !== (t.due || "")) q.set("due", due || "none");
     if (rep !== (t.repeat || 0)) q.set("rep", rep);
+    const note = sh.querySelector("[name=note]").value.trim(); if (note !== (t.note || "")) q.set("note", note);
     if ([...q.keys()].length <= 2) { bg.remove(); return; }
     send(q.toString(), sv, "กำลังบันทึก…");
   });
@@ -617,6 +633,7 @@ function editSheet(g, t) {
       ${t.locked ? '<button data-auto>ปลดล็อก ให้คิมหาวันว่างเอง</button>' : ""}`}
     <p class="sh">ความสำคัญ</p><div class="seg">${[[1, "❗ สำคัญ"], [2, "ปกติ"], [3, "ว่างค่อยทำ"]].map(([k, l]) => `<button data-pr="${k}" aria-pressed="${(t.pri ?? 2) === k}">${l}</button>`).join("")}</div>
     <p class="sh">ความยาก</p><div class="seg">${[["easy", "🪶 ง่าย"], ["medium", "ปานกลาง"], ["hard", "🧗 ยาก"]].map(([k, l]) => `<button data-ef="${k}" aria-pressed="${(t.effort ?? "medium") === k}">${l}</button>`).join("")}</div>
+    <label class="fl">📝 โน้ต / รายละเอียด<textarea name="note" rows="5" maxlength="4000" placeholder="ชื่องานสั้นๆ พอ รายละเอียดใส่ตรงนี้ เช่น คำถามที่จะถาม ของที่ต้องเตรียม ลิงก์">${escapeHtml(t.note || "")}</textarea></label>
     <button class="primary" data-save>บันทึก</button>
     <button class="danger" data-del>ลบ${routine ? "กิจวัตร" : "งาน"}นี้</button>
     <button data-x>ยกเลิก</button>`);
@@ -657,6 +674,7 @@ function editSheet(g, t) {
     const pr = Number(sh.querySelector("[data-pr][aria-pressed=true]")?.dataset.pr), ef = sh.querySelector("[data-ef][aria-pressed=true]")?.dataset.ef;
     if (pr && pr !== (t.pri ?? 2)) q.set("pr", pr);
     if (ef && ef !== (t.effort ?? "medium")) q.set("ef", ef);
+    const note = sh.querySelector("[name=note]").value.trim(); if (note !== (t.note || "")) q.set("note", note);
     if ([...q.keys()].length <= 2 && !routine) { bg.remove(); return; }
     send(q.toString(), sv, "กำลังบันทึก…");
   });
@@ -762,6 +780,28 @@ document.addEventListener("click", (e) => {
   const nk = e.target.closest("[data-ntask]"); if (nk) return noteTaskSheet(Number(nk.dataset.ntask));
   const nc = e.target.closest("[data-nchat]"); if (nc) return noteChat(Number(nc.dataset.nchat));
 });
+document.getElementById("note-add").addEventListener("click", () => noteAddSheet());
+function noteAddSheet() {
+  const goals = (GDATA?.goals || []).filter((g) => ["active", "paused"].includes(g.status) && g.id > 0);
+  const cats = [...new Set(NOTES.map((n) => n.category))].filter(Boolean);
+  const bg = openSheet(`<h4>เขียนโน้ต</h4>
+    <label class="fl">หัวข้อ<input type="text" name="title" maxlength="120" placeholder="เช่น ไอเดียคอนเทนต์ TikTok"></label>
+    <label class="fl">เนื้อหา<textarea rows="8" name="body" placeholder="พิมพ์ได้ยาวเท่าที่ต้องการ"></textarea></label>
+    <label class="fl">เกี่ยวกับเป้า (ถ้ามี)<select name="g"><option value="0">ไม่เกี่ยวกับเป้า</option>${goals.map((g) => `<option value="${g.id}">${escapeHtml(g.title)}</option>`).join("")}</select></label>
+    <label class="fl">หมวด (ไม่ใส่ = ใช้ชื่อเป้า หรือ "ทั่วไป")<input type="text" name="cat" maxlength="40" list="note-cats"><datalist id="note-cats">${cats.map((c) => `<option value="${escapeHtml(c)}">`).join("")}</datalist></label>
+    <button class="primary" data-go>บันทึกโน้ต</button><button data-x>ยกเลิก</button>`);
+  bg.querySelector("[data-go]").onclick = async (e) => {
+    const title = bg.querySelector("[name=title]").value.trim(), body = bg.querySelector("[name=body]").value.trim();
+    if (!title && !body) return toast("ยังไม่ได้พิมพ์อะไรเลย");
+    const g = bg.querySelector("[name=g]").value, cat = bg.querySelector("[name=cat]").value.trim();
+    e.target.disabled = true;
+    const gt = goals.find((x) => String(x.id) === g)?.title;
+    NOTES.unshift({ id: -Date.now(), title: title || body.split("\n")[0].slice(0, 60), summary: body, category: cat || gt || "ทั่วไป", kind: "note", goal_id: Number(g) || null, created_at: new Date().toISOString() });
+    bg.remove(); drawNotes();
+    await noteAct(`a=note_add&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}&g=${g}&cat=${encodeURIComponent(cat)}`);
+    reloadGarden();
+  };
+}
 function noteEditSheet(id) {
   const n = NOTES.find((x) => x.id === id); if (!n) return;
   const bg = openSheet(`<h4>แก้โน้ต</h4>
@@ -887,7 +927,7 @@ function optimistic(data) {
   drawDays();
 }
 async function act(data) {
-  const slow = /^a=(energy|replan|lighten|restday)/.test(data);   // พวกนี้จัดแผนใหม่ทั้งวัน ต้องรอผล
+  const slow = /^a=(energy|replan|lighten|dayrest|fitday|porder)/.test(data);   // พวกนี้จัดแผนใหม่ทั้งวัน ต้องรอผล
   if (slow && BUSY) return;
   if (DEMO) { optimistic(data); toast("(ตัวอย่าง) " + data); return; }
   optimistic(data);
@@ -900,7 +940,7 @@ async function act(data) {
     const j = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(j.error || r.status);
     if (slow || !/^a=(pdone|pundo|pmin|task_edit)/.test(data)) toast(j.note);
-    if (/^a=(restday|task_edit)/.test(data)) { OV = null; }
+    if (/^a=(dayrest|fitday|task_edit)/.test(data)) { OV = null; }
   } catch (e) { failed = true; toast("ทำไม่สำเร็จ ลองอีกครั้งนะ"); }
   finally {
     PENDING--;
@@ -918,6 +958,15 @@ const GROUPS = [
   ["cal", "ปฏิทิน", "#6b7a8c"],
 ];
 const GCOLOR = Object.fromEntries(GROUPS.map(([k, , c]) => [k, c]));
+// สีตามเป้า (ค่าเริ่มต้น) หรือตามประเภท · เลือกได้ในตั้งค่า เก็บไว้ในเครื่องนี้
+const GOAL_PAL = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"];
+const NEUTRAL = "#8a7f6e";
+let COLOR_BY = "goal";
+try { COLOR_BY = localStorage.getItem("kim_color") || "goal"; } catch (_) {}
+const goalColor = (gid) => { const i = (DAYS?.goals || []).findIndex((g) => g.id === gid); return i < 0 ? NEUTRAL : GOAL_PAL[i % GOAL_PAL.length]; };
+const rowColor = (x, type) => COLOR_BY === "type" ? GCOLOR[type] : x.gid ? goalColor(x.gid) : type === "appt" ? GCOLOR.cal : NEUTRAL;
+const chipCls = () => COLOR_BY === "type" ? "tchip" : "tchip plain";
+let REORDER = false;
 const GL_EN = { appt: "Appt", routine: "Routine", goal: "Goal", errand: "Errand", cal: "Calendar" };
 const GLABEL = new Proxy({}, { get: (_, k) => (LANG === "en" ? GL_EN[k] : (GROUPS.find((g) => g[0] === k) || [])[1]) });
 const RECENT = new Set();   // งานที่เพิ่งติ๊กในหน้านี้ → ถามเวลาจริง
@@ -956,14 +1005,14 @@ function drawDays() {
     const play = today && !x.result ? `<button class="tplay" data-act="a=${running ? "pstop" : "pstart"}&p=${x.pid}" aria-label="${running ? "หยุด" : "เริ่มทำ"}">${running ? "❚❚" : "▶"}</button>` : "";
     const more = tick && !x.result ? `<button class="tmore" data-row="${x.pid}" aria-label="ตัวเลือก">⋯</button>` : "";
     const ask = RECENT.has(x.pid) && done ? `<div class="tmin">ใช้เวลาจริงเท่าไหร่? ${[15, 30, 45, 60, 90, 120].map((m) => `<button data-act="a=pmin&p=${x.pid}&m=${m}" data-min="${x.pid}">${fmtM(m)}</button>`).join("")}<button data-min="${x.pid}" class="ok">ตามแผน</button></div>` : "";
-    return `<div class="trow ${done ? "done" : part ? "partial" : none ? "none" : ""}${running ? " running" : ""}" style="--tc:${GCOLOR[type]}"><span class="ttime">${x.at || ""}</span>${chk}<div class="tbody"><div class="ttitle"><span class="tchip">${GLABEL[type]}</span>${escapeHtml(x.title)}${badges(x)}</div><div class="tmeta">${meta}</div>${ask}</div>${play}${more}</div>`;
+    return `<div class="trow ${done ? "done" : part ? "partial" : none ? "none" : ""}${running ? " running" : ""}" style="--tc:${rowColor(x, type)}"><span class="ttime">${x.at || ""}</span>${chk}<div class="tbody"${x.tid ? ` data-row="${x.pid}"` : ""}><div class="ttitle"><span class="${chipCls()}" ${COLOR_BY === "type" ? "" : ""}>${GLABEL[type]}</span>${escapeHtml(x.title)}${badges(x)}</div><div class="tmeta">${meta}</div>${x.note ? `<div class="tnote">📝 ${escapeHtml(x.note)}</div>` : ""}${ask}</div>${play}${more}</div>`;
   };
-  const errRow = (e) => `<div class="trow" style="--tc:${GCOLOR.errand}"><span class="ttime"></span><button class="tchk" data-act="a=errand_done&t=${e.id}&back=plan" aria-label="ทำเสร็จ"></button><div class="tbody editable" data-edit="${e.id}"><div class="ttitle"><span class="tchip">${GLABEL.errand}</span>${escapeHtml(e.title)}</div><div class="tmeta">งานทั่วไป${e.repeat ? " · 🔁" : ""}${e.due && e.due < DAYS.today ? ` · <span class="warn">ค้างตั้งแต่ ${thDate(e.due)}</span>` : ""}</div></div><button class="tmore" data-edit="${e.id}">แก้</button></div>`;
-  const extRow = (e) => `<div class="trow" style="--tc:${e.at ? GCOLOR.appt : GCOLOR.cal}"><span class="ttime">${e.at || ""}</span><button class="tchk" data-act="a=ext&r=done&e=${encodeURIComponent(e.id)}" aria-label="ทำแล้ว"></button><div class="tbody"><div class="ttitle"><span class="tchip">${e.at ? GLABEL.appt : GLABEL.cal}</span>${escapeHtml(e.title)}</div><div class="tmeta">${escapeHtml(e.cal || "")}${e.at ? ` · ${fmtM(e.minutes)}` : " · ทั้งวัน"}</div></div><button class="tmore" data-act="a=ext&r=skip&e=${encodeURIComponent(e.id)}">ข้าม</button></div>`;
+  const errRow = (e) => `<div class="trow" style="--tc:${COLOR_BY === "type" ? GCOLOR.errand : NEUTRAL}"><span class="ttime"></span><button class="tchk" data-act="a=errand_done&t=${e.id}&back=plan" aria-label="ทำเสร็จ"></button><div class="tbody editable" data-edit="${e.id}"><div class="ttitle"><span class="${chipCls()}">${GLABEL.errand}</span>${escapeHtml(e.title)}${e.note ? " 📝" : ""}</div><div class="tmeta">งานทั่วไป${e.repeat ? " · 🔁" : ""}${e.due && e.due < DAYS.today ? ` · <span class="warn">ค้างตั้งแต่ ${thDate(e.due)}</span>` : ""}</div></div><button class="tmore" data-edit="${e.id}">แก้</button></div>`;
+  const extRow = (e) => `<div class="trow" style="--tc:${COLOR_BY === "type" ? (e.at ? GCOLOR.appt : GCOLOR.cal) : NEUTRAL}"><span class="ttime">${e.at || ""}</span><button class="tchk" data-act="a=ext&r=done&e=${encodeURIComponent(e.id)}" aria-label="ทำแล้ว"></button><div class="tbody"><div class="ttitle"><span class="${chipCls()}">${e.at ? GLABEL.appt : GLABEL.cal}</span>${escapeHtml(e.title)}</div><div class="tmeta">${escapeHtml(e.cal || "")}${e.at ? ` · ${fmtM(e.minutes)}` : " · ทั้งวัน"}</div></div><button class="tmore" data-act="a=ext&r=skip&e=${encodeURIComponent(e.id)}">ข้าม</button></div>`;
   // ไทม์ไลน์: มีเวลา (เรียงตามเวลา) → ทำเมื่อไหร่ก็ได้ (สำคัญก่อน) → เสร็จแล้ว (พับไว้)
   const open = d.items.filter((x) => !x.result), fin = d.items.filter((x) => x.result);
   const timed = [...open.filter((x) => x.at).map((x) => [toMinJs(x.at), row(x)]), ...(d.ext || []).filter((e) => e.at).map((e) => [toMinJs(e.at), extRow(e)])].sort((a, b) => a[0] - b[0]).map((x) => x[1]);
-  const anyTime = [...open.filter((x) => !x.at).sort((a, b) => (a.started ? -1 : 0) - (b.started ? -1 : 0) || (a.pri ?? 2) - (b.pri ?? 2)).map(row), ...(d.ext || []).filter((e) => !e.at).map(extRow), ...(d.errands || []).map(errRow)];
+  const anyTime = [...open.filter((x) => !x.at).sort((a, b) => (b.started ? 1 : 0) - (a.started ? 1 : 0)).map(row), ...(d.ext || []).filter((e) => !e.at).map(extRow), ...(d.errands || []).map(errRow)];
   const add = today ? `<button class="gadd" data-adderr="1">+ งานทั่วไป</button>` : "";
   const en = DAYS.energy;
   const EHINT = { light: "เหลือแค่นัด งานสำคัญ/ใกล้ส่ง และกิจวัตรสั้นๆ ที่เหลือย้ายไปวันอื่น", normal: "แผนตามเวลาว่างปกติ (เผื่อไว้ราว 30%)", full: "ใช้เวลาว่างเต็มที่ และดึงงานวันข้างหน้ามาทำเพิ่ม" };
@@ -971,14 +1020,34 @@ function drawDays() {
   const nt = today && DAYS.notice;
   const noticeHtml = nt ? `<div class="notice">${escapeHtml(nt.text).replace(/\n/g, "<br>")}${nt.act ? `<button data-act="${nt.act}">${escapeHtml(nt.label || "ตกลง")}</button>` : ""}</div>` : "";
   const canRest = rel >= 0;
-  const restHtml = !canRest ? "" : d.restOv === "work" ? `<div class="restbar"><span>วันพักประจำ แต่${dayName(d.day)}ทำงานตามปกติ</span><button data-act="a=restday&d=${d.day}&v=auto">กลับมาพัก</button></div>`
-    : d.restWd && d.restOv !== "rest" ? `<div class="restbar"><span>🌙 ${dayName(d.day)}เป็นวันพักประจำ</span><button data-act="a=restday&d=${d.day}&v=work">${dayName(d.day)}ไม่พัก</button></div>`
-    : d.restOv === "rest" ? `<div class="restbar"><span>🌙 ขอพัก${dayName(d.day)}แล้ว</span><button data-act="a=restday&d=${d.day}&v=auto">ยกเลิก ไม่พักแล้ว</button></div>` : "";
-  const restLink = canRest && !d.restWd && !d.restOv ? ` · <button class="linkbtn" data-act="a=restday&d=${d.day}&v=rest">ขอพัก${dayName(d.day)}</button>` : "";
+  const restHtml = !canRest ? "" : d.restOv === "work" ? `<div class="restbar"><span>วันพักประจำ แต่${dayName(d.day)}ทำงานตามปกติ</span><button data-act="a=dayrest&d=${d.day}&v=auto">กลับมาพัก</button></div>`
+    : d.restWd && d.restOv !== "rest" ? `<div class="restbar"><span>🌙 ${dayName(d.day)}เป็นวันพักประจำ</span><button data-act="a=dayrest&d=${d.day}&v=work">${dayName(d.day)}ไม่พัก</button></div>`
+    : d.restOv === "rest" ? `<div class="restbar"><span>🌙 ขอพัก${dayName(d.day)}แล้ว</span><button data-act="a=dayrest&d=${d.day}&v=auto">ยกเลิก ไม่พักแล้ว</button></div>` : "";
+  const restLink = canRest && !d.restWd && !d.restOv ? ` · <button class="linkbtn" data-act="a=dayrest&d=${d.day}&v=rest">ขอพัก${dayName(d.day)}</button>` : "";
+  const movable = open.filter((x) => !x.fixed && x.type !== "appt" && !x.started);
+  const inToday = [...new Map(d.items.filter((x) => x.gid).map((x) => [x.gid, x.gname])).entries()].sort((a, b) => (DAYS.goals || []).findIndex((g) => g.id === a[0]) - (DAYS.goals || []).findIndex((g) => g.id === b[0]));
+  const legend = COLOR_BY === "goal" && (inToday.length || (d.errands || []).length) ? `<div class="glegend">${inToday.map(([gid, n]) => `<span><i style="background:${goalColor(gid)}"></i>${escapeHtml(n || "")}</span>`).join("")}${(d.errands || []).length || (d.ext || []).length || d.items.some((x) => !x.gid) ? `<span><i style="background:${NEUTRAL}"></i>${L("ทั่วไป/นัด", "Errands/appts")}</span>` : ""}</div>` : "";
+  const ordBtn = rel >= 0 && movable.length > 1 ? ` · <button class="linkbtn" data-reorder="1">↕ ${L("จัดลำดับ", "Reorder")}</button>` : "";
+  if (REORDER && rel >= 0) {
+    const list = REORDER === true ? movable.map((x) => x.pid) : REORDER;
+    REORDER = list;
+    const byPid = new Map(d.items.map((x) => [x.pid, x]));
+    v.innerHTML = `<p class="dsum">${L("กด ▲▼ เรียงว่าจะทำอะไรก่อนหลัง · นัดที่ล็อกเวลาอยู่ที่เดิม · คิมจะจัดเวลาให้ตามลำดับนี้", "Use ▲▼ to set your order · fixed appointments stay put · Kim re-times tasks in this order")}</p>
+      ${list.map((pid, i) => { const x = byPid.get(pid); return `<div class="ord" style="--tc:${rowColor(x, x.type || "goal")}"><span class="ot">${i + 1}. ${escapeHtml(x.title)}<small>${escapeHtml(x.gname || x.goal || "")}${x.minutes ? ` · ${fmtM(x.minutes)}` : ""}</small></span><button data-up="${i}" ${i ? "" : "disabled"} aria-label="${L("ขึ้น", "Up")}">▲</button><button data-down="${i}" ${i < list.length - 1 ? "" : "disabled"} aria-label="${L("ลง", "Down")}">▼</button></div>`; }).join("")}
+      <div class="ordbar"><button class="primary" data-ordsave="1">${L("บันทึกลำดับ", "Save order")}</button><button data-ordcancel="1">${L("ยกเลิก", "Cancel")}</button></div>`;
+    v.onclick = (e) => {
+      const up = e.target.closest("[data-up]"), dn = e.target.closest("[data-down]");
+      if (up || dn) { const i = Number((up || dn).dataset.up ?? (up || dn).dataset.down), j = up ? i - 1 : i + 1; [list[i], list[j]] = [list[j], list[i]]; return drawDays(); }
+      if (e.target.closest("[data-ordcancel]")) { REORDER = false; return drawDays(); }
+      if (e.target.closest("[data-ordsave]")) { const ids = list.join(","); REORDER = false; return act(`a=porder&d=${d.day}&ids=${ids}`); }
+    };
+    return;
+  }
   if (d.rest && !d.items.length) { v.innerHTML = `${restHtml}<p class="hint">วันพัก 🌙 พักให้เต็มที่นะ</p>`; v.onclick = clickDays(d, today); return; }
   v.innerHTML = `${noticeHtml}${restHtml}${energyHtml}
-    <p class="dsum">${tick ? `เสร็จ ${kept}/${d.items.length}` : `${total} อย่าง`} · ว่าง ~${fmtM(d.free) || "0 นาที"}${today && DAYS.late ? " · 🌙 ยังไม่ได้ปิดวัน" : ""}${restLink}</p>
+    <p class="dsum">${tick ? `เสร็จ ${kept}/${d.items.length}` : `${total} อย่าง`} · ว่าง ~${fmtM(d.free) || "0 นาที"}${today && DAYS.late ? " · 🌙 ยังไม่ได้ปิดวัน" : ""}${restLink}${ordBtn}</p>
     ${tick ? `<div class="dbar"><i style="width:${Math.max(pct, 2)}%"></i></div>` : ""}
+    ${legend}
     ${timed.length ? `<p class="tsec">⏰ ตามเวลา · ${timed.length}</p>${timed.join("")}` : ""}
     ${anyTime.length || add ? `<p class="tsec">ทำเมื่อไหร่ก็ได้ · ${anyTime.length}${add}</p>${anyTime.join("")}` : ""}
     ${fin.length ? `<details class="tdone"${fin.length <= 2 ? " open" : ""}><summary>✓ เสร็จแล้ว / ข้าม · ${fin.length} ▾</summary>${fin.map(row).join("")}</details>` : ""}
@@ -989,11 +1058,12 @@ function drawDays() {
   if (today && d.items.some((x) => x.started && !x.result)) TICK = setInterval(() => { if (!document.querySelector('[data-panel="today"]').hidden && !BUSY) drawDays(); }, 60000);
 }
 const clickDays = (d, today) => (e) => {
+  if (e.target.closest("[data-reorder]")) { REORDER = true; return drawDays(); }
   const m = e.target.closest("[data-min]");
   if (m) { RECENT.delete(Number(m.dataset.min)); if (!m.dataset.act) return drawDays(); }
   const a = e.target.closest("[data-act]");
   if (a) { if (a.dataset.pid) RECENT.add(Number(a.dataset.pid)); return act(a.dataset.act); }
-  const r = e.target.closest("[data-row]"); if (r) return rowSheet(d.items.find((x) => String(x.pid) === r.dataset.row), today);
+  const r = e.target.closest("[data-row]"); if (r) return rowSheet(d.items.find((x) => String(x.pid) === r.dataset.row), today && !d.items.find((x) => String(x.pid) === r.dataset.row)?.result);
 };
 
 // ⋯ ของแต่ละงาน: ทำไปบางส่วน · เลื่อน (เฉพาะวันนี้) · ความสำคัญ/ความยาก
@@ -1002,10 +1072,12 @@ function rowSheet(x, today) {
   const tmr = DAYS.days.find((d) => dayRel(d.day) === 1)?.day, max = new Date(Date.parse(DAYS.today) + 90 * 864e5).toISOString().slice(0, 10);
   const canMove = today && !x.fixed;
   const isExt = String(x.title).startsWith("📅");
+  const openRow = !x.result && dayRel(DAYS.days[DAY_I].day) <= 0;
   const bg = openSheet(`<h4>${escapeHtml(x.title)}</h4>
-    <p class="sh">⏳ ทำไปบางส่วนแล้ว ยังไม่เสร็จ</p><p>${x.routine ? "นับเป็นวันที่ได้ทำ" : "นับเป็นวันที่ได้ทำ คิมย้ายส่วนที่เหลือไปวันถัดไปให้"}</p>
+    ${x.tid && !isExt ? `<label class="fl">📝 ${L("โน้ต / รายละเอียด", "Notes / details")}<textarea name="tnote" rows="4" maxlength="4000" placeholder="${L("คำถามที่จะถาม ของที่ต้องเตรียม ลิงก์ ฯลฯ", "Questions, things to prepare, links…")}">${escapeHtml(x.note || "")}</textarea></label><button data-savenote="1">${L("บันทึกโน้ต", "Save note")}</button>` : ""}
+    ${openRow ? `<p class="sh">⏳ ทำไปบางส่วนแล้ว ยังไม่เสร็จ</p><p>${x.routine ? "นับเป็นวันที่ได้ทำ" : "นับเป็นวันที่ได้ทำ คิมย้ายส่วนที่เหลือไปวันถัดไปให้"}</p>
     <div class="seg">${[15, 30, 45, 60, 90].map((m) => `<button data-part="${m}">${fmtM(m)}</button>`).join("")}</div>
-    <label class="fl">หรือใส่เอง (นาที)<input type="text" inputmode="numeric" name="pm" placeholder="40"></label><button data-part="custom">บันทึกว่าทำไปบางส่วน</button>
+    <label class="fl">หรือใส่เอง (นาที)<input type="text" inputmode="numeric" name="pm" placeholder="40"></label><button data-part="custom">บันทึกว่าทำไปบางส่วน</button>` : ""}
     ${canMove ? `<p class="sh">⏭ เลื่อน${x.due ? ` · กำหนดส่ง ${thDate(x.due)}` : ""}</p>
       ${x.routine ? `<button data-to="skip">ข้ามวันนี้ (รอบหน้าคิมจัดตามปกติ)</button>` : `<button data-to="1">พรุ่งนี้</button><button data-to="auto">ให้คิมหาวันว่าง</button>
       <label class="fl">เลือกวันเอง<input type="date" name="pick" min="${tmr}" max="${max}" value="${tmr}"></label><button data-to="pick">เลื่อนไปวันที่เลือก</button>`}` : ""}
@@ -1014,6 +1086,11 @@ function rowSheet(x, today) {
       <p>คิมเดาให้ตอนจดงาน ปรับเองได้ · วันเบาๆ คิมเลือกงานง่ายและงานสำคัญก่อน</p>` : ""}
     <button data-x>ปิด</button>`);
   bg.querySelector(".sheet").addEventListener("click", (e) => {
+    if (e.target.closest("[data-savenote]")) {
+      const note = bg.querySelector("[name=tnote]").value.trim();
+      x.note = note || null; bg.remove(); drawDays();
+      return act(`a=task_edit&t=${x.tid}&note=${encodeURIComponent(note)}`);
+    }
     const p = e.target.closest("[data-part]");
     if (p) {
       const m = p.dataset.part === "custom" ? Number(bg.querySelector("[name=pm]").value) : Number(p.dataset.part);
@@ -1072,6 +1149,8 @@ async function settingsSheet() {
   sh.innerHTML = `<h4>⚙️ ตั้งค่า</h4>
     <p class="sh">ภาษา / Language</p>
     <div class="seg"><button data-lang="th" aria-pressed="${S.lang !== "en"}">ไทย</button><button data-lang="en" aria-pressed="${S.lang === "en"}">English</button></div>
+    <p class="sh">สีในหน้าวันนี้</p><p>เลือกว่าสีของแต่ละงานบอกอะไร (ป้าย นัด/กิจวัตร/เป้า ยังอยู่เหมือนเดิม)</p>
+    <div class="seg">${[["goal", "ตามเป้า/โปรเจกต์"], ["type", "ตามประเภทงาน"]].map(([k, l]) => `<button data-colorby="${k}" aria-pressed="${COLOR_BY === k}">${l}</button>`).join("")}</div>
     <p class="sh">เกี่ยวกับฉัน</p><p>ให้คิมรู้จักชีวิตเธอ จะได้วางแผนและแนะนำได้ตรงขึ้น (ไม่กรอกก็ได้ คิมจะค่อยๆ เรียนรู้จากที่คุยกัน)</p>
     <div class="about">
       <label class="fl">งาน / อาชีพ<input type="text" data-ab="job" maxlength="200" placeholder="เช่น วิศวกรเครื่องยนต์เรือ" value="${escapeHtml(A.job || "")}"></label>
@@ -1119,6 +1198,8 @@ async function settingsSheet() {
   sh.addEventListener("click", async (e) => {
     const lg = e.target.closest("[data-lang]");
     if (lg) { sh.querySelectorAll("[data-lang]").forEach((b) => b.setAttribute("aria-pressed", b === lg)); await save(`a=set&k=lang&v=${lg.dataset.lang}`); setLang(lg.dataset.lang); bg.remove(); return settingsSheet(); }
+    const cb = e.target.closest("[data-colorby]");
+    if (cb) { COLOR_BY = cb.dataset.colorby; try { localStorage.setItem("kim_color", COLOR_BY); } catch (_) {} sh.querySelectorAll("[data-colorby]").forEach((b) => b.setAttribute("aria-pressed", b === cb)); if (DAYS) drawDays(); return; }
     const sa = e.target.closest("[data-saveabout]");
     if (sa) {
       const v = {}; sh.querySelectorAll("[data-ab]").forEach((x) => { v[x.dataset.ab] = x.type === "checkbox" ? x.checked : x.value.trim(); });
@@ -1185,17 +1266,22 @@ function drawOverview() {
     cells += `<rect x="${w * (cs + cg)}" y="${r * (cs + cg)}" width="${cs}" height="${cs}" rx="1.5" fill="${fill}"><title>${k}${m ? ` · ${fmtM(m) || m + " min"}` : ""}</title></rect>`;
   }
   const maxG = Math.max(1, ...o.goals.map((g) => g.min));
+  // ดีกว่าเมื่อวาน: เทียบกับตัวเองปีก่อนช่วงเดียวกัน (ไม่เทียบกับใคร)
+  const vs = (now, before, fmt = (x) => x) => o.prev ? `<em class="vs">${L("ปีก่อนช่วงเดียวกัน", "Same period last year")} ${fmt(before)}${now > before ? " ↑" : ""}</em>` : "";
+  const curM = o.year === Number(o.today.slice(0, 4)) ? Number(o.today.slice(5, 7)) : 0;
+  const mNow = curM ? o.months[curM - 1] : null, mPrev = curM > 1 ? o.months[curM - 2] : null;
   box.innerHTML = `
     <div class="ov-top"><b>${L("ภาพรวมปี", "Year")} ${LANG === "en" ? o.year : o.year + 543}</b>
       <select id="ov-year" aria-label="${L("เลือกปี", "Year")}">${o.years.slice().reverse().map((y) => `<option value="${y}" ${y === o.year ? "selected" : ""}>${LANG === "en" ? y : y + 543}</option>`).join("")}</select></div>
     <div class="kpis">
-      <div class="kpi"><b>${s.days}</b><span>${L("วันที่ได้ทำ", "days you showed up")}</span></div>
-      <div class="kpi"><b>${hrs(s.minutes)}</b><span>${L("ชั่วโมงที่ลงมือ", "hours of work")}</span></div>
-      <div class="kpi"><b>${s.done}</b><span>${L("งานที่ทำแล้ว", "tasks done")}</span></div>
+      <div class="kpi"><b>${s.days}</b><span>${L("วันที่ได้ทำ", "days you showed up")}</span>${vs(s.days, o.prev?.days)}</div>
+      <div class="kpi"><b>${hrs(s.minutes)}</b><span>${L("ชั่วโมงที่ลงมือ", "hours of work")}</span>${vs(s.minutes, o.prev?.minutes, hrs)}</div>
+      <div class="kpi"><b>${s.done}</b><span>${L("งานที่ทำแล้ว", "tasks done")}</span>${vs(s.done, o.prev?.done)}</div>
       <div class="kpi"><b>${s.planned ? s.rate + "%" : "–"}</b><span>${L("ทำตามแผน", "plan kept")}</span></div>
     </div>
     <p class="ov-h">${L("ชั่วโมงรายเดือน", "Hours per month")}</p>
     <svg viewBox="0 0 ${W} 140" role="img" aria-label="${L("ชั่วโมงรายเดือน", "Hours per month")}"><line x1="8" y1="118.5" x2="352" y2="118.5" stroke="${C("--line")}"/>${bars}</svg>
+    ${mNow && mPrev && (mNow.min || mPrev.min) ? `<p class="note">${L(`เดือนนี้ ${hrs(mNow.min)} ชม. · เดือนก่อน ${hrs(mPrev.min)} ชม.${mNow.min > mPrev.min ? " · ดีกว่าตัวเองเดือนก่อนแล้ว ✨" : ""}`, `This month ${hrs(mNow.min)} h · last month ${hrs(mPrev.min)} h${mNow.min > mPrev.min ? " · already ahead of last month ✨" : ""}`)}</p>` : ""}
     ${peak.min ? `<p class="note">${L(`เดือนที่ทำเยอะสุด: ${MONTH[peak.m - 1]} ${hrs(peak.min)} ชม.`, `Busiest month: ${MONTH[peak.m - 1]}, ${hrs(peak.min)} h`)}</p>` : ""}
     <p class="ov-h">${L("เวลาต่อเป้า", "Time per goal")}</p>
     ${o.goals.length ? o.goals.map((g) => `<div class="hbar"><span class="nm">${escapeHtml(g.goal)}</span><span class="tr"><i style="width:${Math.max(3, Math.round((g.min / maxG) * 100))}%"></i></span><span class="v">${hrs(g.min)} ${L("ชม.", "h")}</span></div>`).join("") : `<p class="hint">${L("ยังไม่มีข้อมูลปีนี้", "No data this year yet")}</p>`}
@@ -1225,13 +1311,19 @@ function drawCal() {
     const k = `${m}-${String(i).padStart(2, "0")}`, d = byDay.get(k);
     if (!d) { cells += `<button class="past" disabled><b>${i}</b></button>`; continue; }
     const ev = d.events.length;
-    const cls = d.rest ? "rest" : d.free === 0 ? "" : d.left >= d.free * 0.5 ? "free" : d.left > 0 ? "some" : "full";
+    // สีดูจากงานและนัด (ไม่รวมกิจวัตร ซึ่งคิมตัดให้เองในวันที่แน่น) เทียบกับเวลาว่างวันนั้น
+    const load = d.busy - d.routine + d.events.reduce((s, e) => s + (e.minutes || 0), 0);
+    const cls = d.rest ? "rest" : !d.free ? (load ? "full" : "") : load <= d.free * 0.5 ? "free" : load <= d.free ? "some" : "full";
     const lab = d.rest ? L("พัก", "rest") : d.n + ev ? `${d.n + ev} ${L("อย่าง", "items")}` : L("ว่าง", "free");
     cells += `<button class="${cls}" data-cd="${k}" aria-pressed="${CAL_SEL === k}"><b>${i}</b><small>${lab}</small></button>`;
   }
   const sel = CAL_SEL && byDay.get(CAL_SEL);
+  const work = cal.filter((d) => !d.rest && d.free > 0);
+  const avgR = work.length ? work.reduce((s, d) => s + d.routine, 0) / work.length : 0, avgF = work.length ? work.reduce((s, d) => s + d.free, 0) / work.length : 0;
+  const routineWarn = avgR > avgF * 0.7 && avgR >= 60 ? `<p class="ehint" style="margin:8px 0 0">${L(`⚠️ กิจวัตรรวมราว ${fmtM(Math.round(avgR))}/วัน ${avgR > avgF ? "มากกว่า" : "เกือบเท่า"}เวลาว่างเฉลี่ย ${fmtM(Math.round(avgF))} เลยแทบไม่เหลือเวลาให้งานอื่น วันที่แน่นคิมจะข้ามกิจวัตรยาวให้ หรือลองลด/ย้ายวันกิจวัตรในแท็บเป้าหมาย · สีในปฏิทินดูจากงานและนัด ไม่รวมกิจวัตร`, `⚠️ Routines take ~${fmtM(Math.round(avgR))}/day, ${avgR > avgF ? "more than" : "close to"} your average free time (${fmtM(Math.round(avgF))}). Kim skips long routines on tight days; consider trimming some in Goals · colors show tasks and appointments, not routines`)}</p>` : `<p class="note" style="margin:8px 0 0">${L("สีดูจากงานและนัด ไม่รวมกิจวัตร", "Colors show tasks and appointments, not routines")}</p>`;
   box.innerHTML = `<div class="calnav"><button data-cm="-1" ${CAL_M ? "" : "disabled"} aria-label="${L("เดือนก่อน", "Previous")}">‹</button><b>${MONTH[mm - 1]} ${LANG === "en" ? yy : yy + 543}</b><button data-cm="1" ${CAL_M < months.length - 1 ? "" : "disabled"} aria-label="${L("เดือนถัดไป", "Next")}">›</button></div>
     <div class="calg">${cells}</div>
+    ${routineWarn}
     <div class="legend"><span><i style="background:#e6f4ea"></i>${L("ว่างมาก", "mostly free")}</span><span><i style="background:#fff6dc"></i>${L("ว่างบ้าง", "some time")}</span><span><i style="background:#fbe1df"></i>${L("เต็ม", "full")}</span><span><i style="background:var(--rest)"></i>${L("วันพัก", "rest")}</span></div>
     ${sel ? `<div class="daydet"><b>${DAY[new Date(sel.day + "T00:00:00Z").getUTCDay()]} ${thDate(sel.day)}</b> · ${sel.rest ? L("วันพัก", "rest day") : `${L("ว่างตามปกติ", "usual free time")} ${fmtM(sel.free) || "0"} · ${L("เหลือราว", "left ~")} ${fmtM(sel.left) || "0"}`}
       ${sel.routine ? `<div class="note" style="margin:2px 0 0">${L("กิจวัตรราว", "routines ~")} ${fmtM(sel.routine)}</div>` : ""}
@@ -1253,7 +1345,7 @@ function demoOverview() {
     const n = (i * 5) % 4, busy = n * 45 + 30, rest = wd === 0 && i > 3;
     return { day: d, rest, free: rest ? 0 : free, busy, left: rest ? 0 : Math.max(0, free - busy), routine: 30, n: rest ? 0 : n, tasks: rest ? [] : Array.from({ length: n }, (_, k) => ({ title: ["อ่านเคส OB", "ทำสไลด์ SM", "Affiliate: ตัดต่อคลิป", "เขียนรายงาน"][k], minutes: 45, goal: "CMMU EN", at: null, due: k === 0 ? d : null })), events: wd === 2 ? [{ at: "18:30", title: "MBA class", minutes: 180 }] : [] };
   });
-  return { today, year: y, years: [y - 1, y], stats: { days: 182, minutes: 10360, done: 333, planned: 410, rate: 81 }, months, heat,
+  return { today, year: y, years: [y - 1, y], prev: { days: 140, minutes: 7900, done: 260 }, stats: { days: 182, minutes: 10360, done: 333, planned: 410, rate: 81 }, months, heat,
     goals: [{ goal: "IELTS 7", min: 4200 }, { goal: "CMMU EN", min: 3100 }, { goal: "Side income : Affiliate", min: 1700 }, { goal: "งานทั่วไป", min: 600 }],
     factors: [{ goal: "CMMU EN", f: 1.4, n: 18 }], calendar };
 }
@@ -1262,7 +1354,9 @@ function demoDays() {
   const today = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
   const ahead = (n) => new Date(Date.parse(today) + n * 864e5).toISOString().slice(0, 10);
   const it = (pid, title, o = {}) => ({ pid, title, icon: "", goal: "CMMU EN", minutes: 30, at: null, due: null, fixed: null, result: null, carry: null, routine: false, type: o.routine ? "routine" : o.fixed ? "appt" : "goal", pri: 2, effort: "medium", ...o });
-  return { planner: true, today, lang: LANG, late: false, energy: null, notice: { text: "🌿 เหนื่อยมา 2 วันติดแล้ว ให้คิมลดงานทั้งสัปดาห์ไหม? จะจัดแค่ราวครึ่งเดียว งานที่มีกำหนดส่งยังอยู่ครบ", act: "a=lighten&n=7&r=0.5", label: "ลดงาน 7 วัน" }, days: [
+  const GIDS = { "CMMU EN": 1, "เป้าหลัก": 2, "Side income : Affiliate": 3, "ดูแลชีวิต": 4 };
+  const fix = (o) => { o.days.forEach((d) => d.items.forEach((x) => { x.gid = GIDS[x.goal] ?? null; x.gname = x.goal; })); return o; };
+  return fix({ planner: true, goals: [{ id: 2, title: "เป้าหลัก" }, { id: 1, title: "CMMU EN" }, { id: 3, title: "Side income : Affiliate" }, { id: 4, title: "ดูแลชีวิต" }], today, lang: LANG, late: false, energy: null, notice: { text: "🌿 เหนื่อยมา 2 วันติดแล้ว ให้คิมลดงานทั้งสัปดาห์ไหม? จะจัดแค่ราวครึ่งเดียว งานที่มีกำหนดส่งยังอยู่ครบ", act: "a=lighten&n=7&r=0.5", label: "ลดงาน 7 วัน" }, days: [
     { day: ahead(-1), free: 90, items: [
       it(11, "ท่องศัพท์", { icon: "⭐", goal: "เป้าหลัก", routine: true, type: "routine", result: "full", done_min: 25 }),
       it(12, "เขียนรายงาน OB", { minutes: 90, result: "partial", done_min: 40 }),
@@ -1272,13 +1366,13 @@ function demoDays() {
       it(1, "ท่องศัพท์", { icon: "⭐", goal: "เป้าหลัก", at: "19:00", routine: true, type: "routine", result: "full" }),
       it(2, "NPP: ส่งรีพอร์ตงานกลุ่ม", { due: ahead(0), pri: 1, tid: 2, started: new Date(Date.now() - 23 * 6e4).toISOString() }),
       it(3, "Affiliate: ทำตารางข้อมูลสินค้า 10 ชิ้น", { icon: "🌿", goal: "Side income : Affiliate", due: ahead(-2), carry: "ค้างจากเมื่อวาน", pri: 1, effort: "hard", tid: 3 }),
-      it(10, "อ่านบทความ marketing สั้นๆ", { minutes: 20, effort: "easy", tid: 10 }),
+      it(10, "อ่านบทความ marketing สั้นๆ", { minutes: 20, effort: "easy", tid: 10, note: "ลิงก์จากพี่ที่ทำงาน · จดไอเดียที่ใช้กับ Affiliate ได้" }),
       it(4, "นัดซ้อมพรีเซนต์กับเพื่อน", { at: "21:00", fixed: "21:00", minutes: 60, type: "appt" }),
       it(5, "เดินบนลู่วิ่ง", { icon: "💚", goal: "ดูแลชีวิต", minutes: 35, routine: true, type: "routine", at: "18:00" }),
     ], errands: [{ id: 9, title: "ไปส่งปณ. PKF", due: ahead(0) }], ext: [{ id: "x1", title: "ไปบางกระเจ้ากับต้า", at: "10:00", minutes: 120, cal: "Personal Life" }] },
     { day: ahead(1), free: 240, items: [it(6, "ทำสไลด์ SM", { minutes: 90, due: ahead(3) }), it(7, "ท่องศัพท์", { icon: "⭐", goal: "เป้าหลัก", routine: true })], errands: [], ext: [] },
     { day: ahead(2), free: 120, restWd: true, items: [it(8, "อ่านเคส OB", { minutes: 45, due: ahead(5) })], errands: [], ext: [] },
-  ] };
+  ] });
 }
 
 function showState(msg) { const s = document.getElementById("state"); s.hidden = false; s.textContent = `${msg} · ${VERSION}`; document.getElementById("app").hidden = true; }
