@@ -234,6 +234,10 @@
   .ord button:disabled { opacity: .3; }
   .ordbar { display: flex; gap: 8px; margin: 10px 0; } .ordbar button { flex: 1; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 12px; padding: 11px; font: inherit; font-size: 14px; cursor: pointer; } .ordbar button.primary { background: var(--leaf); border-color: var(--leaf); color: #fff; font-weight: 600; }
   .nadd { width: 100%; margin: 0 0 10px; border: 1px dashed var(--leaf); color: var(--leaf); background: none; border-radius: 12px; padding: 9px; font: inherit; font-size: 14px; cursor: pointer; }
+  .focusbar { background: #eef4ff; border: 1px solid #cfe0fb; border-radius: 12px; padding: 9px 12px; font-size: 13.5px; margin: 0 0 10px; }
+  .tsec.big { font-size: 15px; color: var(--ink); margin-top: 6px; }
+  .tsec .cnt { font-weight: 500; color: var(--leaf); font-size: 12.5px; }
+  .dopt { margin-top: 14px; } .dopt .energy { margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -279,7 +283,7 @@
 // LIFF ID ไม่ต้องใส่แล้ว: หน้าสวนถามจาก garden-data เอง (ใช้ Secret LIFF_ID ใน Supabase) · ใส่ตรงนี้ก็ได้ถ้าอยากบังคับ
 let LIFF_ID = "";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v27";
+const VERSION = "v29";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -1002,8 +1006,8 @@ function drawDays() {
     const chk = !tick ? "" : (done || part) ? `<button class="tchk on${part ? " half" : ""}" data-act="a=pundo&p=${x.pid}" aria-label="เอาติ๊กออก">${part ? "½" : "✓"}</button>`
       : none ? `<button class="tchk skip" disabled aria-label="ข้ามแล้ว">–</button>`
       : `<button class="tchk" data-act="a=pdone&p=${x.pid}" data-pid="${x.pid}" aria-label="ทำเสร็จ"></button>`;
-    const play = today && !x.result ? `<button class="tplay" data-act="a=${running ? "pstop" : "pstart"}&p=${x.pid}" aria-label="${running ? "หยุด" : "เริ่มทำ"}">${running ? "❚❚" : "▶"}</button>` : "";
-    const more = tick && !x.result ? `<button class="tmore" data-row="${x.pid}" aria-label="ตัวเลือก">⋯</button>` : "";
+    const play = today && running ? `<button class="tplay" data-act="a=pstop&p=${x.pid}" aria-label="หยุด">❚❚</button>` : "";
+    const more = "";
     const ask = RECENT.has(x.pid) && done ? `<div class="tmin">ใช้เวลาจริงเท่าไหร่? ${[15, 30, 45, 60, 90, 120].map((m) => `<button data-act="a=pmin&p=${x.pid}&m=${m}" data-min="${x.pid}">${fmtM(m)}</button>`).join("")}<button data-min="${x.pid}" class="ok">ตามแผน</button></div>` : "";
     return `<div class="trow ${done ? "done" : part ? "partial" : none ? "none" : ""}${running ? " running" : ""}" style="--tc:${rowColor(x, type)}"><span class="ttime">${x.at || ""}</span>${chk}<div class="tbody"${x.tid ? ` data-row="${x.pid}"` : ""}><div class="ttitle"><span class="${chipCls()}" ${COLOR_BY === "type" ? "" : ""}>${GLABEL[type]}</span>${escapeHtml(x.title)}${badges(x)}</div><div class="tmeta">${meta}</div>${x.note ? `<div class="tnote">📝 ${escapeHtml(x.note)}</div>` : ""}${ask}</div>${play}${more}</div>`;
   };
@@ -1025,6 +1029,7 @@ function drawDays() {
     : d.restOv === "rest" ? `<div class="restbar"><span>🌙 ขอพัก${dayName(d.day)}แล้ว</span><button data-act="a=dayrest&d=${d.day}&v=auto">ยกเลิก ไม่พักแล้ว</button></div>` : "";
   const restLink = canRest && !d.restWd && !d.restOv ? ` · <button class="linkbtn" data-act="a=dayrest&d=${d.day}&v=rest">ขอพัก${dayName(d.day)}</button>` : "";
   const movable = open.filter((x) => !x.fixed && x.type !== "appt" && !x.started);
+  if (open.some((x) => x.pos != null)) movable.sort((a, b) => (a.pos ?? 999) - (b.pos ?? 999));
   const inToday = [...new Map(d.items.filter((x) => x.gid).map((x) => [x.gid, x.gname])).entries()].sort((a, b) => (DAYS.goals || []).findIndex((g) => g.id === a[0]) - (DAYS.goals || []).findIndex((g) => g.id === b[0]));
   const legend = COLOR_BY === "goal" && (inToday.length || (d.errands || []).length) ? `<div class="glegend">${inToday.map(([gid, n]) => `<span><i style="background:${goalColor(gid)}"></i>${escapeHtml(n || "")}</span>`).join("")}${(d.errands || []).length || (d.ext || []).length || d.items.some((x) => !x.gid) ? `<span><i style="background:${NEUTRAL}"></i>${L("ทั่วไป/นัด", "Errands/appts")}</span>` : ""}</div>` : "";
   const ordBtn = rel >= 0 && movable.length > 1 ? ` · <button class="linkbtn" data-reorder="1">↕ ${L("จัดลำดับ", "Reorder")}</button>` : "";
@@ -1044,15 +1049,33 @@ function drawDays() {
     return;
   }
   if (d.rest && !d.items.length) { v.innerHTML = `${restHtml}<p class="hint">วันพัก 🌙 พักให้เต็มที่นะ</p>`; v.onclick = clickDays(d, today); return; }
-  v.innerHTML = `${noticeHtml}${restHtml}${energyHtml}
-    <p class="dsum">${tick ? `เสร็จ ${kept}/${d.items.length}` : `${total} อย่าง`} · ว่าง ~${fmtM(d.free) || "0 นาที"}${today && DAYS.late ? " · 🌙 ยังไม่ได้ปิดวัน" : ""}${restLink}${ordBtn}</p>
-    ${tick ? `<div class="dbar"><i style="width:${Math.max(pct, 2)}%"></i></div>` : ""}
-    ${legend}
-    ${timed.length ? `<p class="tsec">⏰ ตามเวลา · ${timed.length}</p>${timed.join("")}` : ""}
-    ${anyTime.length || add ? `<p class="tsec">ทำเมื่อไหร่ก็ได้ · ${anyTime.length}${add}</p>${anyTime.join("")}` : ""}
-    ${fin.length ? `<details class="tdone"${fin.length <= 2 ? " open" : ""}><summary>✓ เสร็จแล้ว / ข้าม · ${fin.length} ▾</summary>${fin.map(row).join("")}</details>` : ""}
-    ${!timed.length && !anyTime.length && !fin.length ? '<p class="hint">ยังไม่มีงานในแผน</p>' : ""}
-    ${past ? '<p class="note">ติ๊กย้อนหลังได้ งานที่ทำไปบางส่วนก็นับเป็นวันที่ได้ทำ</p>' : !tick ? '<p class="note">ดูล่วงหน้า ถึงวันจริงค่อยติ๊ก · อยากย้ายงาน กด ⋯ ในวันนี้ หรือแก้ในหน้าเป้าหมาย</p>' : '<p class="note">▶ = เริ่มทำ คิมจับเวลาจริงให้ · ⋯ = ทำไปบางส่วน เลื่อน หรือตั้งความสำคัญ</p>'}`;
+  // หน้าเรียบง่าย: ทำ N อย่างนี้ก่อน → นัดวันนี้ → (พับไว้) ถ้ามีเวลาเหลือ · เสร็จแล้ว · ตัวเลือกของวัน
+  const fx = DAYS.focus, N = fx?.max || 3;
+  const hasPos = open.some((x) => x.pos != null);
+  const tasks = open.filter((x) => x.type !== "appt");
+  if (hasPos) tasks.sort((a, b) => (a.pos ?? 999) - (b.pos ?? 999));   // ลำดับที่ผู้ใช้จัดเอง มาก่อนเวลาที่คิมจอง
+  tasks.sort((a, b) => (b.started ? 1 : 0) - (a.started ? 1 : 0));
+  const top = tasks.slice(0, N), rest = tasks.slice(N);
+  const appts = [...open.filter((x) => x.type === "appt").map((x) => [toMinJs(x.at || x.fixed), row(x)]), ...(d.ext || []).map((e) => [toMinJs(e.at), extRow(e)])].sort((a, b) => a[0] - b[0]).map((x) => x[1]);
+  const extra = [...rest.map(row), ...(d.errands || []).map(errRow)];
+  const focusHtml = fx && rel >= 0 ? `<div class="focusbar">🎯 ${L("โฟกัส", "Focus")} <b>${escapeHtml(fx.titles.join(", "))}</b> · ${L(`อีก ${fx.left} วัน`, `${fx.left} days left`)} · ${L(`วันละ ${fx.max} อย่าง`, `${fx.max} a day`)}</div>` : "";
+  const topDone = fin.filter((x) => x.type !== "appt").length;
+  const headTxt = !tick ? L(`${dayName(d.day)}คิมจัดไว้ ${tasks.length} อย่าง`, `${tasks.length} planned`)
+    : !open.length && fin.length ? L("วันนี้ทำครบแล้ว 🎉", "All done today 🎉")
+    : top.length ? L(`ทำ ${top.length} อย่างนี้ก่อน`, `Do these ${top.length} first`) : L("ไม่มีงานค้างแล้ว", "Nothing left");
+  v.innerHTML = `${noticeHtml}${focusHtml}${restHtml}
+    <p class="tsec big">👉 ${headTxt}${tick && topDone ? ` <span class="cnt">${L(`ทำแล้ว ${topDone}`, `${topDone} done`)}</span>` : ""}</p>
+    ${top.map(row).join("")}
+    ${appts.length ? `<p class="tsec">📌 ${L("นัดวันนี้", "Appointments")} · ${appts.length}</p>${appts.join("")}` : ""}
+    ${extra.length ? `<details class="tdone"><summary>${L("ถ้ามีเวลาเหลือ", "If you have time")} · ${extra.length} ▾</summary>${extra.join("")}</details>` : ""}
+    ${fin.length ? `<details class="tdone"><summary>✓ ${L("เสร็จแล้ว / ข้าม", "Done / skipped")} · ${fin.length} ▾</summary>${fin.map(row).join("")}</details>` : ""}
+    ${!tasks.length && !appts.length && !fin.length && !extra.length ? '<p class="hint">ยังไม่มีงานในแผน</p>' : ""}
+    <details class="tdone dopt"><summary>⚙︎ ${L("ตัวเลือกของวัน", "Day options")} ▾</summary>
+      ${energyHtml}
+      <p class="dsum">${L("ว่าง", "Free")} ~${fmtM(d.free) || "0 นาที"}${today && DAYS.late ? " · 🌙 ยังไม่ได้ปิดวัน" : ""}${restLink}${ordBtn}${today ? ` · <button class="linkbtn" data-adderr="1">+ ${L("งานทั่วไป", "Errand")}</button>` : ""}</p>
+      ${legend}
+      <p class="note">${L("แตะที่งานเพื่อดูโน้ต เริ่มจับเวลา บอกว่าทำไปบางส่วน หรือเลื่อนวัน", "Tap a task for notes, timer, partial, or move")}</p>
+    </details>`;
   v.onclick = clickDays(d, today);
   clearInterval(TICK);
   if (today && d.items.some((x) => x.started && !x.result)) TICK = setInterval(() => { if (!document.querySelector('[data-panel="today"]').hidden && !BUSY) drawDays(); }, 60000);
@@ -1074,6 +1097,7 @@ function rowSheet(x, today) {
   const isExt = String(x.title).startsWith("📅");
   const openRow = !x.result && dayRel(DAYS.days[DAY_I].day) <= 0;
   const bg = openSheet(`<h4>${escapeHtml(x.title)}</h4>
+    ${today && !x.result && !x.started ? `<button class="primary" data-start="1">▶ ${L("เริ่มทำ (คิมจับเวลาให้)", "Start (Kim tracks time)")}</button>` : ""}
     ${x.tid && !isExt ? `<label class="fl">📝 ${L("โน้ต / รายละเอียด", "Notes / details")}<textarea name="tnote" rows="4" maxlength="4000" placeholder="${L("คำถามที่จะถาม ของที่ต้องเตรียม ลิงก์ ฯลฯ", "Questions, things to prepare, links…")}">${escapeHtml(x.note || "")}</textarea></label><button data-savenote="1">${L("บันทึกโน้ต", "Save note")}</button>` : ""}
     ${openRow ? `<p class="sh">⏳ ทำไปบางส่วนแล้ว ยังไม่เสร็จ</p><p>${x.routine ? "นับเป็นวันที่ได้ทำ" : "นับเป็นวันที่ได้ทำ คิมย้ายส่วนที่เหลือไปวันถัดไปให้"}</p>
     <div class="seg">${[15, 30, 45, 60, 90].map((m) => `<button data-part="${m}">${fmtM(m)}</button>`).join("")}</div>
@@ -1086,6 +1110,7 @@ function rowSheet(x, today) {
       <p>คิมเดาให้ตอนจดงาน ปรับเองได้ · วันเบาๆ คิมเลือกงานง่ายและงานสำคัญก่อน</p>` : ""}
     <button data-x>ปิด</button>`);
   bg.querySelector(".sheet").addEventListener("click", (e) => {
+    if (e.target.closest("[data-start]")) { bg.remove(); return act(`a=pstart&p=${x.pid}`); }
     if (e.target.closest("[data-savenote]")) {
       const note = bg.querySelector("[name=tnote]").value.trim();
       x.note = note || null; bg.remove(); drawDays();
@@ -1139,7 +1164,7 @@ async function settingsSheet() {
   const sh = bg.querySelector(".sheet");
   let S;
   try {
-    if (DEMO) S = { about: { job: "วิศวกรเครื่องยนต์เรือ", hours: "จ–ศ 8:00–17:00", mbti: "INTJ", tone: "direct", plan: "flex" }, lang: LANG, morning: "09:00", free: [240, 90, 90, 120, 90, 120, 300], rest: [], planRem: null, routines: [{ id: 1, title: "ท่องศัพท์", goal: "IELTS 7", days: [1, 3, 5], remind: "20:00" }, { id: 2, title: "บันทึกรายรับรายจ่าย", goal: "Money", days: [0], remind: null }] };
+    if (DEMO) S = { goals: [{ id: 1, title: "IELTS 7" }, { id: 5, title: "TOEFL ITP 550+" }, { id: 2, title: "CMMU EN" }], focus: { gids: [5], until: "2026-12-19", max: 3 }, about: { job: "วิศวกรเครื่องยนต์เรือ", hours: "จ–ศ 8:00–17:00", mbti: "INTJ", tone: "direct", plan: "flex" }, lang: LANG, morning: "09:00", free: [240, 90, 90, 120, 90, 120, 300], rest: [], planRem: null, routines: [{ id: 1, title: "ท่องศัพท์", goal: "IELTS 7", days: [1, 3, 5], remind: "20:00" }, { id: 2, title: "บันทึกรายรับรายจ่าย", goal: "Money", days: [0], remind: null }] };
     else { const r = await fetch(`${FUNCTION_URL}?settings=1`, { headers: { "x-line-id-token": ID_TOKEN } }); if (r.status === 401 && relogin()) return; S = await r.json(); if (!r.ok) throw new Error(S.error); }
   } catch (_) { sh.innerHTML = `<h4>⚙️ ตั้งค่า</h4><p>โหลดไม่สำเร็จ ลองใหม่อีกครั้งนะ</p><button data-x>ปิด</button>`; return; }
   const hrsL = [0, 30, 60, 90, 120, 150, 180, 240, 300, 360, 420, 480, 600];
@@ -1149,6 +1174,11 @@ async function settingsSheet() {
   sh.innerHTML = `<h4>⚙️ ตั้งค่า</h4>
     <p class="sh">ภาษา / Language</p>
     <div class="seg"><button data-lang="th" aria-pressed="${S.lang !== "en"}">ไทย</button><button data-lang="en" aria-pressed="${S.lang === "en"}">English</button></div>
+    <p class="sh">🎯 โหมดโฟกัส (ช่วงยุ่ง)</p><p>เลือกเป้าที่ต้องทำต่อจริงๆ คิมจะจัดแค่เป้านั้น วันละไม่กี่อย่าง เป้าอื่นพักไว้ก่อน (งานที่ถึงกำหนดส่งและนัดยังขึ้น) ครบวันที่เลือกแล้วกลับไปจัดตามปกติเอง</p>
+    <div class="days" id="fx-goals" style="flex-wrap:wrap">${(S.goals || []).map((g) => `<button data-fg="${g.id}" aria-pressed="${!!S.focus?.gids?.includes(g.id)}" style="width:auto;padding:0 12px">${escapeHtml(g.title)}</button>`).join("")}</div>
+    <label class="fl">โฟกัสถึงวันที่<input type="date" name="fx-until" value="${S.focus?.until || ""}" min="${new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10)}"></label>
+    <label class="fl">วันละไม่เกิน<select name="fx-max">${[1, 2, 3, 4, 5].map((n) => `<option value="${n}" ${n === (S.focus?.max || 3) ? "selected" : ""}>${n} อย่าง</option>`).join("")}</select></label>
+    <button class="primary" data-fxsave="1">${S.focus ? "บันทึกโฟกัส" : "เริ่มโฟกัส"}</button>${S.focus ? '<button data-fxoff="1">ปิดโหมดโฟกัส</button>' : ""}
     <p class="sh">สีในหน้าวันนี้</p><p>เลือกว่าสีของแต่ละงานบอกอะไร (ป้าย นัด/กิจวัตร/เป้า ยังอยู่เหมือนเดิม)</p>
     <div class="seg">${[["goal", "ตามเป้า/โปรเจกต์"], ["type", "ตามประเภทงาน"]].map(([k, l]) => `<button data-colorby="${k}" aria-pressed="${COLOR_BY === k}">${l}</button>`).join("")}</div>
     <p class="sh">เกี่ยวกับฉัน</p><p>ให้คิมรู้จักชีวิตเธอ จะได้วางแผนและแนะนำได้ตรงขึ้น (ไม่กรอกก็ได้ คิมจะค่อยๆ เรียนรู้จากที่คุยกัน)</p>
@@ -1181,9 +1211,9 @@ async function settingsSheet() {
     <button data-save="morning">บันทึกเวลาทักเช้า</button>
     <button data-test>🔔 ลองให้คิมทักตอนนี้</button>
     <p class="tres" hidden></p>
-    <p class="sh">เตือนดูแผน</p><p>ทักเฉพาะวันที่ยังมีงานค้าง · เว้นว่าง = ไม่เตือน</p>
+    <p class="sh">ทักตอนเย็น</p><p>คิมถามคำถามเดียว "วันนี้เป็นไงบ้าง" แล้วกดตอบได้เลย · ทักเฉพาะวันที่ยังมีงานค้าง · เว้นว่าง = ไม่ทัก</p>
     <label class="fl"><input type="time" name="planrem" value="${S.planRem || ""}"></label>
-    <button data-save="planrem">บันทึกเตือนดูแผน</button>
+    <button data-save="planrem">บันทึกเวลาทักตอนเย็น</button>
     ${S.routines.length ? `<p class="sh">เตือนกิจวัตรตามเวลา</p><p>เว้นว่าง = ไม่เตือน · เปลี่ยนแล้วบันทึกทันที</p>
       ${S.routines.map((r) => `<label class="frow wide"><span>${escapeHtml(r.title)}<small>${escapeHtml(r.goal || "")}${r.days?.length ? ` · ${r.days.map((d) => DAY[d]).join(" ")}` : ""}</small></span><input type="time" data-rrem="${r.id}" value="${r.remind || ""}"></label>`).join("")}` : ""}
     <p class="note">${VERSION}</p>
@@ -1198,6 +1228,18 @@ async function settingsSheet() {
   sh.addEventListener("click", async (e) => {
     const lg = e.target.closest("[data-lang]");
     if (lg) { sh.querySelectorAll("[data-lang]").forEach((b) => b.setAttribute("aria-pressed", b === lg)); await save(`a=set&k=lang&v=${lg.dataset.lang}`); setLang(lg.dataset.lang); bg.remove(); return settingsSheet(); }
+    const fg = e.target.closest("[data-fg]");
+    if (fg) { fg.setAttribute("aria-pressed", fg.getAttribute("aria-pressed") !== "true"); return; }
+    const fs = e.target.closest("[data-fxsave]"), fo = e.target.closest("[data-fxoff]");
+    if (fs || fo) {
+      const gids = [...sh.querySelectorAll("[data-fg][aria-pressed=true]")].map((b) => Number(b.dataset.fg));
+      const until = sh.querySelector("[name=fx-until]").value, max = Number(sh.querySelector("[name=fx-max]").value);
+      if (fs && !gids.length) return toast("เลือกเป้าที่จะโฟกัสก่อนนะ");
+      if (fs && !until) return toast("เลือกวันที่จะโฟกัสถึงก่อนนะ");
+      const j = await save(`a=set&k=focus&v=${encodeURIComponent(fo ? "off" : JSON.stringify({ gids, until, max }))}`, fs || fo);
+      if (j) { DAYS = null; OV = null; if (!document.querySelector('[data-panel="today"]').hidden) loadDays(); }
+      return;
+    }
     const cb = e.target.closest("[data-colorby]");
     if (cb) { COLOR_BY = cb.dataset.colorby; try { localStorage.setItem("kim_color", COLOR_BY); } catch (_) {} sh.querySelectorAll("[data-colorby]").forEach((b) => b.setAttribute("aria-pressed", b === cb)); if (DAYS) drawDays(); return; }
     const sa = e.target.closest("[data-saveabout]");
@@ -1356,7 +1398,7 @@ function demoDays() {
   const it = (pid, title, o = {}) => ({ pid, title, icon: "", goal: "CMMU EN", minutes: 30, at: null, due: null, fixed: null, result: null, carry: null, routine: false, type: o.routine ? "routine" : o.fixed ? "appt" : "goal", pri: 2, effort: "medium", ...o });
   const GIDS = { "CMMU EN": 1, "เป้าหลัก": 2, "Side income : Affiliate": 3, "ดูแลชีวิต": 4 };
   const fix = (o) => { o.days.forEach((d) => d.items.forEach((x) => { x.gid = GIDS[x.goal] ?? null; x.gname = x.goal; })); return o; };
-  return fix({ planner: true, goals: [{ id: 2, title: "เป้าหลัก" }, { id: 1, title: "CMMU EN" }, { id: 3, title: "Side income : Affiliate" }, { id: 4, title: "ดูแลชีวิต" }], today, lang: LANG, late: false, energy: null, notice: { text: "🌿 เหนื่อยมา 2 วันติดแล้ว ให้คิมลดงานทั้งสัปดาห์ไหม? จะจัดแค่ราวครึ่งเดียว งานที่มีกำหนดส่งยังอยู่ครบ", act: "a=lighten&n=7&r=0.5", label: "ลดงาน 7 วัน" }, days: [
+  return fix({ planner: true, focus: { titles: ["TOEFL ITP 550+"], until: ahead(34), max: 3, left: 34 }, goals: [{ id: 2, title: "เป้าหลัก" }, { id: 1, title: "CMMU EN" }, { id: 3, title: "Side income : Affiliate" }, { id: 4, title: "ดูแลชีวิต" }], today, lang: LANG, late: false, energy: null, notice: { text: "🌿 เหนื่อยมา 2 วันติดแล้ว ให้คิมลดงานทั้งสัปดาห์ไหม? จะจัดแค่ราวครึ่งเดียว งานที่มีกำหนดส่งยังอยู่ครบ", act: "a=lighten&n=7&r=0.5", label: "ลดงาน 7 วัน" }, days: [
     { day: ahead(-1), free: 90, items: [
       it(11, "ท่องศัพท์", { icon: "⭐", goal: "เป้าหลัก", routine: true, type: "routine", result: "full", done_min: 25 }),
       it(12, "เขียนรายงาน OB", { minutes: 90, result: "partial", done_min: 40 }),
