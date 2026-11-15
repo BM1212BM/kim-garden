@@ -238,6 +238,7 @@
   .tsec.big { font-size: 15px; color: var(--ink); margin-top: 6px; }
   .tsec .cnt { font-weight: 500; color: var(--leaf); font-size: 12.5px; }
   .dopt { margin-top: 14px; } .dopt .energy { margin-top: 8px; }
+  li.parked { opacity: .8; } li.parked .unpark { margin-left: auto; border: 1px solid var(--leaf); color: var(--leaf); background: none; border-radius: 999px; padding: 2px 10px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -283,7 +284,7 @@
 // LIFF ID ไม่ต้องใส่แล้ว: หน้าสวนถามจาก garden-data เอง (ใช้ Secret LIFF_ID ใน Supabase) · ใส่ตรงนี้ก็ได้ถ้าอยากบังคับ
 let LIFF_ID = "";
 const FUNCTION_URL = "https://wprtvubpruzugrivbovf.supabase.co/functions/v1/garden-data";
-const VERSION = "v29";
+const VERSION = "v30";
 // =====================================
 
 const NS = "http://www.w3.org/2000/svg";
@@ -478,8 +479,10 @@ function goalCard(g, today, open) {
     <ul class="tasks">${todo.slice(0, SHOW).map((t) => taskLi(t, today)).join("")}</ul>
     ${todo.length > SHOW ? `<details class="more"><summary>+ อีก ${todo.length - SHOW} งาน</summary><ul class="tasks">${todo.slice(SHOW).map((t) => taskLi(t, today)).join("")}</ul></details>` : ""}
     ${doneList.length ? `<details class="more"><summary>✓ เสร็จแล้ว ${doneList.length} งาน</summary><ul class="tasks">${doneList.map((t) => taskLi(t, today)).join("")}</ul></details>` : ""}` : "";
+  const parked = (GDATA?.parked || []).filter((p) => p.goal_id === g.id);
+  const parkHtml = parked.length ? `<details class="more" open><summary>💤 พักไว้ ${parked.length} งาน (ไม่หาย)</summary><ul class="tasks">${parked.map((p) => `<li class="parked"><span class="t">${escapeHtml(p.title)}<span class="when">${p.until ? `กลับมา ${thDate(p.until)}` : "ไม่มีกำหนด"}</span></span><button class="unpark" data-unpark="${p.id}">กลับมาทำ</button></li>`).join("")}</ul></details>` : "";
   const hint = g.status === "paused" && todo.length ? '<p class="hint">เป้านี้เก็บไว้ก่อน คิมยังไม่จัดลงวัน (ยกเว้นงานที่มีกำหนดส่ง) · อยากเริ่ม พิมพ์ในแชทคิม เช่น "ย้ายเรื่องนี้เป็นโปรเจกต์"</p>' : "";
-  const acts = g.status === "active" || g.status === "paused" ? `<div class="gc-acts"><button data-addtask="${g.id}">+ เพิ่มงาน</button><button data-review="${g.id}">🔍 ให้คิมช่วยดู</button></div>` : "";
+  const acts = (g.status === "active" || g.status === "paused" ? parkHtml : "") + (g.status === "active" || g.status === "paused" ? `<div class="gc-acts"><button data-addtask="${g.id}">+ เพิ่มงาน</button><button data-review="${g.id}">🔍 ให้คิมช่วยดู</button></div>` : "");
   return `<details class="gc r-${rk}" data-gid="${g.id}"${open ? " open" : ""}>
     <summary>
       <div class="gc-row"><span class="gc-title">${escapeHtml(g.title)}</span>${pct !== null && g.status !== "done" ? `<span class="gc-pct">${pct}%</span>` : g.status === "done" ? '<span class="gc-pct">🌸</span>' : ""}<span class="chev">▶</span></div>
@@ -520,9 +523,11 @@ function drawGoals(data) {
   const err = data.errands ?? { todo: [], done: 0 };
   const errHtml = true ? `<p class="grp-h">📌 งานทั่วไป · ค้าง ${err.todo.length}${err.done ? ` · เคลียร์แล้ว ${err.done}` : ""}<button class="gadd2" data-adderr="1">+ เพิ่ม</button></p>
     <div class="gc errs" style="padding:4px 14px"><ul class="tasks">${err.todo.map((e) => taskLi({ ...e, status: "todo" }, data.today)).join("") || '<li><span class="t" style="color:var(--muted)">เคลียร์หมดแล้ว 🎉</span></li>'}</ul></div>` : "";
+  const pe = (data.parked || []).filter((p) => !p.goal_id || !(data.goals || []).some((g) => g.id === p.goal_id && ["active", "paused"].includes(g.status)));
+  const parkErr = pe.length ? `<details class="gc" style="padding:4px 14px"><summary class="grp-h" style="list-style:none;cursor:pointer">💤 งานที่พักไว้ · ${pe.length} (ไม่หาย กดกลับมาทำได้)</summary><ul class="tasks">${pe.map((p) => `<li class="parked"><span class="t">${escapeHtml(p.title)}<span class="when">${p.until ? `กลับมา ${thDate(p.until)}` : "ไม่มีกำหนด"}</span></span><button class="unpark" data-unpark="${p.id}">กลับมาทำ</button></li>`).join("")}</ul></details>` : "";
   const otherHtml = others.length ? `<p class="grp-h">เก็บไว้ก่อน / สำเร็จแล้ว · ${others.length}</p>${others.map((g) => goalCard(g, data.today, openIds.has(String(g.id)))).join("")}` : "";
   document.getElementById("goal-cards").innerHTML =
-    (active.length ? goalsHtml : '<p class="hint">ยังไม่มีเป้าที่กำลังทำ พิมพ์ "แผนชีวิต" ในแชทคิมได้เลย</p>') + errHtml + otherHtml;
+    (active.length ? goalsHtml : '<p class="hint">ยังไม่มีเป้าที่กำลังทำ พิมพ์ "แผนชีวิต" ในแชทคิมได้เลย</p>') + errHtml + parkErr + otherHtml;
   document.querySelectorAll("#goal-cards details.gc details.more").forEach((d) => { if (moreOpen.has(`${d.closest(".gc").dataset.gid}|${d.querySelector("summary").textContent.slice(0, 2)}`)) d.open = true; });
 }
 
@@ -596,7 +601,8 @@ function errandSheet(t) {
     <label class="fl">ทำซ้ำ<select name="rep">${reps.map(([d, l]) => `<option value="${d}" ${(t.repeat || 0) === d ? "selected" : ""}>${l}</option>`).join("")}</select></label>
     <label class="fl">📝 โน้ต / รายละเอียด<textarea name="note" rows="4" maxlength="4000" placeholder="รายละเอียด ของที่ต้องเตรียม ลิงก์ ฯลฯ">${escapeHtml(t.note || "")}</textarea></label>
     <button class="primary" data-save>บันทึก</button>
-    <button class="danger" data-del>ลบงานนี้</button>
+    <p class="sh">💤 ยังไม่อยากทำตอนนี้?</p><div class="seg">${[[14, "2 สัปดาห์"], [30, "1 เดือน"], [90, "3 เดือน"], [0, "ไม่มีกำหนด"]].map(([n, l]) => `<button data-park="${n}">${l}</button>`).join("")}</div>
+    <button class="danger" data-del>ลบงานนี้ (ลบถาวร)</button>
     <button data-x>ยกเลิก</button>`);
   const sh = bg.querySelector(".sheet");
   const send = async (data, btn, busy) => {
@@ -605,6 +611,8 @@ function errandSheet(t) {
     catch (_) { btn.disabled = false; btn.textContent = old; toast("ทำไม่สำเร็จ ลองอีกครั้งนะ"); }
   };
   sh.addEventListener("click", (e) => {
+    const pk = e.target.closest("[data-park]");
+    if (pk) return send(`a=park&t=${t.id}&n=${pk.dataset.park}`, pk, "กำลังพัก…");
     const del = e.target.closest("[data-del]");
     if (del) {
       if (del.dataset.armed !== "1") { del.dataset.armed = "1"; del.textContent = "กดอีกครั้งเพื่อยืนยันลบ"; return; }
@@ -639,7 +647,9 @@ function editSheet(g, t) {
     <p class="sh">ความยาก</p><div class="seg">${[["easy", "🪶 ง่าย"], ["medium", "ปานกลาง"], ["hard", "🧗 ยาก"]].map(([k, l]) => `<button data-ef="${k}" aria-pressed="${(t.effort ?? "medium") === k}">${l}</button>`).join("")}</div>
     <label class="fl">📝 โน้ต / รายละเอียด<textarea name="note" rows="5" maxlength="4000" placeholder="ชื่องานสั้นๆ พอ รายละเอียดใส่ตรงนี้ เช่น คำถามที่จะถาม ของที่ต้องเตรียม ลิงก์">${escapeHtml(t.note || "")}</textarea></label>
     <button class="primary" data-save>บันทึก</button>
-    <button class="danger" data-del>ลบ${routine ? "กิจวัตร" : "งาน"}นี้</button>
+    <p class="sh">💤 ยังไม่อยากทำตอนนี้?</p><p>พักไว้ก่อน งานไม่หาย ครบกำหนดคิมเอากลับมาในแผนแล้วบอกเธอ</p>
+    <div class="seg">${[[14, "2 สัปดาห์"], [30, "1 เดือน"], [90, "3 เดือน"], [0, "ไม่มีกำหนด"]].map(([n, l]) => `<button data-park="${n}">${l}</button>`).join("")}</div>
+    <button class="danger" data-del>ลบ${routine ? "กิจวัตร" : "งาน"}นี้ (ลบถาวร)</button>
     <button data-x>ยกเลิก</button>`);
   const sh = bg.querySelector(".sheet");
   const send = async (data, btn, busy) => {
@@ -657,6 +667,8 @@ function editSheet(g, t) {
       if (del.dataset.armed !== "1") { del.dataset.armed = "1"; del.textContent = "กดอีกครั้งเพื่อยืนยันลบ"; return; }
       return send(`a=task_del&t=${t.id}`, del, "กำลังลบ…");
     }
+    const pk = e.target.closest("[data-park]");
+    if (pk) return send(`a=park&t=${t.id}&n=${pk.dataset.park}`, pk, "กำลังพัก…");
     const au = e.target.closest("[data-auto]");
     if (au) return send(`a=task_edit&t=${t.id}&on=auto`, au, "กำลังจัดใหม่…");
     const sv = e.target.closest("[data-save]");
@@ -683,6 +695,10 @@ function editSheet(g, t) {
     send(q.toString(), sv, "กำลังบันทึก…");
   });
 }
+document.addEventListener("click", async (e) => {
+  const up = e.target.closest("[data-unpark]");
+  if (up) { up.disabled = true; up.textContent = "กำลังเอากลับ…"; try { const j = await goalAct(`a=unpark&t=${up.dataset.unpark}`); if (j) { toast(j.note); reloadGarden(); } } catch (_) { up.disabled = false; toast("ทำไม่สำเร็จ ลองอีกครั้งนะ"); } }
+});
 document.addEventListener("click", (e) => {
   const el = e.target.closest("[data-edit]"); if (!el) return;
   const f = findTask(el.dataset.edit); if (!f) return;
@@ -1430,8 +1446,7 @@ function demoData() {
   const t = (n, done) => Array.from({ length: n }, (_, i) => ({ title: `งาน ${i + 1}`, status: i < done ? "done" : "todo" }));
   const r = (title, minutes, days, per_week, weekDone) => ({ title, status: "routine", minutes, days, per_week, weekDone, weekTarget: days?.length || per_week });
   const ahead = (n) => new Date(Date.parse(today) + n * 864e5).toISOString().slice(0, 10);
-  return {
-    today, days, notes: [
+  return { parked: [{ id: 901, title: "คุยกับ ELSA 45 นาที", goal_id: -1, kind: "routine", since: "2026-11-15", until: "2026-12-20" }, { id: 902, title: "หาไฮเตอร์ แก้ผ้าสีตก", goal_id: null, kind: "errand", since: "2026-11-15", until: null }],     today, days, notes: [
       { id: 1, goal_id: 1, category: "IELTS 7", kind: "link", title: "เทคนิค Reading True/False/Not Given", summary: "• อ่านคำถามก่อน ขีดคีย์เวิร์ด\n• Not Given = ในบทความไม่พูดถึงเลย\n• อย่าใช้ความรู้รอบตัวตอบ", source_url: "https://example.com/ielts-reading", created_at: today },
       { id: 2, goal_id: null, category: "ไอเดียธุรกิจ", kind: "idea", title: "กล่องสุ่มขนมสุนัขรายเดือน", summary: "• ส่งเดือนละครั้ง 3 รสชาติ\n• ทดลองกับลูกค้า PAWERY เดิมก่อน", source_url: null, created_at: today },
       { id: 3, goal_id: null, category: "อาหาร", kind: "image", title: "สูตรอกไก่อบสมุนไพร", summary: "• อกไก่ 200 g · โปรตีน ~46 g\n• อบ 200°C 20 นาที", source_url: null, created_at: today },
